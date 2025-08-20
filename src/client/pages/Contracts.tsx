@@ -517,7 +517,7 @@ export default function Contracts() {
                             <span>to {formatDate(contract.end_date)}</span>
                           </div>
                         </TableCell>
-                        <TableCell>${contract.payment_amount.toFixed(2)}</TableCell>
+                        <TableCell>${Number(contract.payment_amount).toFixed(2)}</TableCell>
                         <TableCell>
                           <Badge variant={getStatusBadgeVariant(contract.status)}>
                             {contract.status.charAt(0).toUpperCase() + contract.status.slice(1)}
@@ -812,7 +812,7 @@ export default function Contracts() {
               </div>
               <div className="flex items-center">
                 <DollarSign className="h-4 w-4 mr-2" />
-                <span>Payment: ${selectedContract.payment_amount.toFixed(2)}</span>
+                <span>Payment: ${Number(selectedContract.payment_amount).toFixed(2)}</span>
               </div>
             </div>
           )}

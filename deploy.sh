@@ -1,45 +1,78 @@
 #!/bin/bash
 
-# Deploy script for Dealer Management System
-# This script builds and deploys the unified TypeScript service
+# Dealer Management System Deployment Script
+# This script deploys the application to DigitalOcean
 
 set -e
 
-echo "🚀 Deploying Dealer Management System..."
+echo "🚀 Starting deployment of Dealer Management System..."
 
-# Check if we're in the right directory
-if [ ! -f "package.json" ]; then
-    echo "❌ Error: package.json not found. Please run this script from the project root."
+# Check if doctl is installed
+if ! command -v doctl &> /dev/null; then
+    echo "❌ doctl CLI is not installed. Please install it first:"
+    echo "   https://docs.digitalocean.com/reference/doctl/how-to/install/"
     exit 1
 fi
 
-# Install dependencies
-echo "📦 Installing dependencies..."
-npm install
+# Check if user is authenticated
+if ! doctl auth list &> /dev/null; then
+    echo "❌ Please authenticate with DigitalOcean first:"
+    echo "   doctl auth init"
+    exit 1
+fi
 
 # Build the application
-echo "🔨 Building application..."
+echo "📦 Building the application..."
 npm run build
 
-# Check if build was successful
-if [ ! -d "dist" ]; then
-    echo "❌ Build failed: dist directory not found"
+# Create Docker image
+echo "🐳 Building Docker image..."
+docker build -t dealer-management-system .
+
+# Test the Docker image locally
+echo "🧪 Testing Docker image locally..."
+docker run -d --name test-app -p 8080:8080 \
+    -e NODE_ENV=production \
+    -e PORT=8080 \
+    -e USE_SQLITE=false \
+    dealer-management-system
+
+# Wait for the app to start
+echo "⏳ Waiting for application to start..."
+sleep 10
+
+# Test health endpoint
+if curl -f http://localhost:8080/health > /dev/null 2>&1; then
+    echo "✅ Application is running successfully!"
+else
+    echo "❌ Application failed to start"
+    docker logs test-app
+    docker stop test-app
+    docker rm test-app
     exit 1
 fi
 
-echo "✅ Build completed successfully!"
+# Stop and remove test container
+docker stop test-app
+docker rm test-app
 
-# Check if we should start the server
-if [ "$1" = "--start" ]; then
-    echo "🚀 Starting production server..."
-    npm start
-elif [ "$1" = "--docker" ]; then
-    echo "🐳 Building Docker image..."
-    docker build -t dealer-management-system .
-    echo "✅ Docker image built successfully!"
-    echo "Run with: docker run -p 8080:8080 dealer-management-system"
+# Deploy to DigitalOcean App Platform
+echo "☁️ Deploying to DigitalOcean App Platform..."
+
+# Check if app exists
+if doctl apps list | grep -q "dealer-management-system"; then
+    echo "🔄 Updating existing app..."
+    doctl apps update dealer-management-system --spec .do/app.yaml
 else
-    echo "✅ Deployment completed!"
-    echo "To start the server, run: npm start"
-    echo "To build Docker image, run: ./deploy.sh --docker"
+    echo "🆕 Creating new app..."
+    doctl apps create --spec .do/app.yaml
 fi
+
+echo "✅ Deployment completed successfully!"
+echo ""
+echo "🔗 Your application should be available at:"
+echo "   https://dealer-management-system-xxxxx.ondigitalocean.app"
+echo ""
+echo "📊 Monitor your deployment with:"
+echo "   doctl apps list"
+echo "   doctl apps logs dealer-management-system"

@@ -80,7 +80,7 @@ export default function Dashboard() {
 
   // Calculate total revenue
   const getTotalRevenue = () => {
-    return contracts.reduce((total, contract) => total + contract.payment_amount, 0);
+            return contracts.reduce((total, contract) => total + Number(contract.payment_amount), 0);
   };
 
   return (

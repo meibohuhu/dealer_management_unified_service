@@ -3,16 +3,17 @@ import { ContractService } from '../services/ContractService';
 import { ContractCreate, ContractUpdate } from '../models/Contract';
 import { z } from 'zod';
 
-const router = Router();
-let contractService: ContractService;
+export const createContractsRouter = () => {
+  const router = Router();
+  let contractService: ContractService;
 
-// Initialize service lazily
-function getContractService(): ContractService {
-  if (!contractService) {
-    contractService = new ContractService();
+  // Initialize service lazily
+  function getContractService(): ContractService {
+    if (!contractService) {
+      contractService = new ContractService();
+    }
+    return contractService;
   }
-  return contractService;
-}
 
 // Validation schemas
 const ContractCreateSchema = z.object({
@@ -109,6 +110,56 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+// Search contracts (must come before /:id routes)
+router.get('/search', async (req: Request, res: Response) => {
+  try {
+    const { q, customer_name, contract_number, vin_number, skip, limit } = req.query;
+    
+    // For now, we'll use the basic getAllContracts with filters
+    // TODO: Implement proper search functionality
+    const contracts = await getContractService().getAllContracts(
+      parseInt(skip as string) || 0,
+      parseInt(limit as string) || 100
+    );
+    
+    // Apply basic filtering
+    let filteredContracts = contracts;
+    
+    if (customer_name) {
+      filteredContracts = filteredContracts.filter(c => 
+        c.customer_name.toLowerCase().includes((customer_name as string).toLowerCase())
+      );
+    }
+    
+    if (contract_number) {
+      filteredContracts = filteredContracts.filter(c => 
+        c.contract_number.toLowerCase().includes((contract_number as string).toLowerCase())
+      );
+    }
+    
+    if (vin_number) {
+      filteredContracts = filteredContracts.filter(c => 
+        c.vin_number.toLowerCase().includes((vin_number as string).toLowerCase())
+      );
+    }
+    
+    if (q) {
+      const searchTerm = (q as string).toLowerCase();
+      filteredContracts = filteredContracts.filter(c => 
+        c.customer_name.toLowerCase().includes(searchTerm) ||
+        c.contract_number.toLowerCase().includes(searchTerm) ||
+        c.vin_number.toLowerCase().includes(searchTerm) ||
+        c.customer_phone.includes(searchTerm)
+      );
+    }
+    
+    res.json(filteredContracts);
+  } catch (error) {
+    console.error('Error searching contracts:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Get contract by ID
 router.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -169,54 +220,5 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Search contracts
-router.get('/search', async (req: Request, res: Response) => {
-  try {
-    const { q, customer_name, contract_number, vin_number, skip, limit } = req.query;
-    
-    // For now, we'll use the basic getAllContracts with filters
-    // TODO: Implement proper search functionality
-    const contracts = await getContractService().getAllContracts(
-      parseInt(skip as string) || 0,
-      parseInt(limit as string) || 100
-    );
-    
-    // Apply basic filtering
-    let filteredContracts = contracts;
-    
-    if (customer_name) {
-      filteredContracts = filteredContracts.filter(c => 
-        c.customer_name.toLowerCase().includes((customer_name as string).toLowerCase())
-      );
-    }
-    
-    if (contract_number) {
-      filteredContracts = filteredContracts.filter(c => 
-        c.contract_number.toLowerCase().includes((contract_number as string).toLowerCase())
-      );
-    }
-    
-    if (vin_number) {
-      filteredContracts = filteredContracts.filter(c => 
-        c.vin_number.toLowerCase().includes((vin_number as string).toLowerCase())
-      );
-    }
-    
-    if (q) {
-      const searchTerm = (q as string).toLowerCase();
-      filteredContracts = filteredContracts.filter(c => 
-        c.customer_name.toLowerCase().includes(searchTerm) ||
-        c.contract_number.toLowerCase().includes(searchTerm) ||
-        c.vin_number.toLowerCase().includes(searchTerm) ||
-        c.customer_phone.includes(searchTerm)
-      );
-    }
-    
-    res.json(filteredContracts);
-  } catch (error) {
-    console.error('Error searching contracts:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-export default router;
+  return router;
+};

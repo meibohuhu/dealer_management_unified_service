@@ -2,8 +2,9 @@ import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { VehicleService } from '../services/VehicleService';
 
-const router = Router();
-const vehicleService = new VehicleService(process.env.USE_SQLITE !== 'true');
+export const createVehiclesRouter = () => {
+  const router = Router();
+  const vehicleService = new VehicleService(process.env.USE_SQLITE !== 'true');
 
 // Validation schemas
 const VehicleCreateSchema = z.object({
@@ -124,4 +125,5 @@ router.delete('/:id', async (req: Request, res: Response) => {
   }
 });
 
-export default router;
+  return router;
+};

@@ -522,11 +522,11 @@ export default function ContractDetail() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Payment</p>
-                  <p className="font-medium">${contract.payment_amount.toFixed(2)}</p>
+                  <p className="font-medium">${Number(contract.payment_amount).toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Deposit</p>
-                  <p>${contract.deposit_amount.toFixed(2)}</p>
+                  <p>${Number(contract.deposit_amount).toFixed(2)}</p>
                 </div>
               </div>
               <Separator />
@@ -693,6 +693,7 @@ export default function ContractDetail() {
           </DialogHeader>
           <Form {...editForm}>
             <form onSubmit={editForm.handleSubmit(handleEditContract)} className="space-y-4">
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={editForm.control}

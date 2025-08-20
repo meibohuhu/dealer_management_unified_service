@@ -36,10 +36,23 @@ async function handleResponse<T>(response: Response): Promise<T> {
       errorData.message || `API error: ${response.status} ${response.statusText}`
     );
   }
-  // Read and log the response body
-  const data = await response.clone().json().catch(() => ({}));
-  console.log(`[API RESPONSE]`, data);
-  return response.json() as Promise<T>;
+  
+  // For DELETE operations or responses with no content, return undefined
+  if (response.status === 204 || response.headers.get('content-length') === '0') {
+    console.log(`[API RESPONSE] No content (${response.status})`);
+    return undefined as T;
+  }
+  
+  // Try to parse JSON response
+  try {
+    const data = await response.json();
+    console.log(`[API RESPONSE]`, data);
+    return data;
+  } catch (error) {
+    // If response is empty or not JSON, return undefined
+    console.log(`[API RESPONSE] Empty or non-JSON response`);
+    return undefined as T;
+  }
 }
 
 // Generic API call function

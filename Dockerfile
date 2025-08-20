@@ -1,53 +1,53 @@
-# Multi-stage build for Dealer Management System
-FROM node:18-alpine AS builder
+# Multi-stage build for production
+FROM node:18-alpine AS base
 
-# Set working directory
+# Install dependencies only when needed
+FROM base AS deps
+# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine to understand why libc6-compat might be needed.
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY pnpm-lock.yaml ./
+# Install dependencies based on the preferred package manager
+COPY package.json package-lock.json* ./
+RUN npm ci
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy source code
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build the application
 RUN npm run build
 
-# Production stage
-FROM node:18-alpine AS production
-
-# Create app user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
-
-# Set working directory
+# Production image, copy all the files and run the app
+FROM base AS runner
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+ENV NODE_ENV=production
+ENV PORT=8080
+ENV PWD=/app
 
-# Install only production dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 
-# Copy built application from builder stage
-COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
+# Copy the built application
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/node_modules ./node_modules
 
-# Create uploads directory
-RUN mkdir -p uploads && chown nodejs:nodejs uploads
+# Create uploads directory and set permissions
+RUN mkdir -p uploads
+# Temporarily run as root for debugging
+# USER nextjs
 
-# Switch to non-root user
-USER nodejs
-
-# Expose port
 EXPOSE 8080
+
+ENV PORT=8080
+ENV HOSTNAME="0.0.0.0"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Start the application
-CMD ["node", "dist/server/index.js"]
+CMD ["npm", "start"]

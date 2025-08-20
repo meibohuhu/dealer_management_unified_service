@@ -3,7 +3,8 @@ import multer from 'multer';
 import { z } from 'zod';
 import { ContractImage } from '../models/ContractImage';
 
-const router = Router();
+export const createContractFilesRouter = () => {
+  const router = Router();
 
 // Configure multer for file uploads
 const upload = multer({
@@ -94,7 +95,7 @@ router.get('/contract/:contractId', async (req: Request, res: Response) => {
     // In a full implementation, you would query the database
     const mockFiles: ContractImage[] = [
       {
-        id: "file1",
+        id: 1,
         contract_id: parseInt(contractId),
         file_name: "contract_agreement.pdf",
         file_url: "https://example.com/files/contract_agreement.pdf",
@@ -103,10 +104,10 @@ router.get('/contract/:contractId', async (req: Request, res: Response) => {
         description: "Signed contract agreement",
         uploaded_by: "admin",
         image_path: `contracts/${contractId}/files/contract_agreement.pdf`,
-        uploaded_at: new Date().toISOString()
+        uploaded_at: new Date()
       },
       {
-        id: "file2",
+        id: 2,
         contract_id: parseInt(contractId),
         file_name: "vehicle_inspection.jpg",
         file_url: "https://via.placeholder.com/800x600?text=Vehicle+Inspection",
@@ -115,7 +116,7 @@ router.get('/contract/:contractId', async (req: Request, res: Response) => {
         description: "Vehicle inspection photos",
         uploaded_by: "staff",
         image_path: `contracts/${contractId}/files/vehicle_inspection.jpg`,
-        uploaded_at: new Date().toISOString()
+        uploaded_at: new Date()
       }
     ];
 
@@ -151,7 +152,7 @@ router.get('/:fileId', async (req: Request, res: Response) => {
     // For now, return mock data
     // In a full implementation, you would query the database
     const mockFile: ContractImage = {
-      id: fileId,
+      id: parseInt(fileId),
       contract_id: 1,
       file_name: "sample_file.pdf",
       file_url: "https://example.com/files/sample_file.pdf",
@@ -160,7 +161,7 @@ router.get('/:fileId', async (req: Request, res: Response) => {
       description: "Sample file",
       uploaded_by: "admin",
       image_path: "contracts/1/files/sample_file.pdf",
-      uploaded_at: new Date().toISOString()
+      uploaded_at: new Date()
     };
 
     res.json(mockFile);
@@ -170,4 +171,5 @@ router.get('/:fileId', async (req: Request, res: Response) => {
   }
 });
 
-export default router;
+  return router;
+};

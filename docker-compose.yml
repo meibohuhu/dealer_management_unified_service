@@ -1,80 +1,52 @@
 version: '3.8'
 
 services:
-  # PostgreSQL database
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: dealer_management_db
+    container_name: dealer_management_postgres
     environment:
       POSTGRES_DB: dealer_management
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./src/server/config/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dealer_management"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-  # Redis for caching (optional)
-  redis:
-    image: redis:7-alpine
-    container_name: dealer_management_redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Main application
+  # Application Server
   app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: dealer_management_app
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/dealer_management
+      USE_SQLITE: false
+      PORT: 8080
+      VITE_SPACES_ENDPOINT: ${VITE_SPACES_ENDPOINT}
+      VITE_SPACES_BUCKET: ${VITE_SPACES_BUCKET}
+      VITE_SPACES_REGION: ${VITE_SPACES_REGION}
+      VITE_SPACES_ACCESS_KEY_ID: ${VITE_SPACES_ACCESS_KEY_ID}
+      VITE_SPACES_SECRET_ACCESS_KEY: ${VITE_SPACES_SECRET_ACCESS_KEY}
+      VITE_SPACES_CDN_ENDPOINT: ${VITE_SPACES_CDN_ENDPOINT}
     ports:
       - "8080:8080"
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/dealer_management
-      DB_USER: postgres
-      DB_PASSWORD: password
-      USE_SQLITE: false
     depends_on:
       postgres:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     volumes:
       - ./uploads:/app/uploads
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Nginx reverse proxy (optional)
-  nginx:
-    image: nginx:alpine
-    container_name: dealer_management_nginx
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - app
-    restart: unless-stopped
 
 volumes:
   postgres_data:
-  redis_data:

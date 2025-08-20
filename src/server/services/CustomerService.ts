@@ -258,7 +258,7 @@ export class CustomerService {
     if (this.usePostgres) {
       const query = 'DELETE FROM ds_customer WHERE id = $1';
       const result = await (this.db as Pool).query(query, [id]);
-      return result.rowCount > 0;
+      return (result.rowCount ?? 0) > 0;
     } else {
       const db = this.db as Database;
       return new Promise((resolve, reject) => {

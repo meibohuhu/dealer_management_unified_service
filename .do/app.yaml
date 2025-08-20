@@ -1,0 +1,44 @@
+name: dealer-management-system
+region: nyc
+services:
+  - name: web
+    source_dir: /
+    github:
+      repo: meibohuhu/dealer_management_unified_service
+      branch: main
+    run_command: npm start
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    health_check:
+      http_path: /health
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "8080"
+      - key: USE_SQLITE
+        value: "false"
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
+      - key: VITE_SPACES_ENDPOINT
+        value: "https://sfo3.digitaloceanspaces.com"
+      - key: VITE_SPACES_BUCKET
+        value: "dealer-management-files"
+      - key: VITE_SPACES_REGION
+        value: "sfo3"
+      - key: VITE_SPACES_ACCESS_KEY_ID
+        value: "DO00XHDZDXNLWNRJFQAF"
+      - key: VITE_SPACES_SECRET_ACCESS_KEY
+        value: "00KD1HtcOHBtW91dDig8Bir9EHH8t5rTFrmioqseQ1c"
+      - key: VITE_SPACES_CDN_ENDPOINT
+        value: "https://dealer-management-files.sfo3.cdn.digitaloceanspaces.com"
+
+databases:
+  - name: db
+    engine: PG
+    version: "15"
+    production: false
+
+# Spaces configuration will be set up separately via environment variables

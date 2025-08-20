@@ -31,7 +31,7 @@ async function seedPostgresData() {
       console.log('Sample vehicles inserted into PostgreSQL');
     }
     
-    if (customerCount.rows[0].count === '0') {
+    if ((customerCount.rows[0] as any).count === '0') {
       // Insert sample customers
       await client.query(`
         INSERT INTO ds_customer (first_name, last_name, phone_number, email, address, created_at, updated_at) VALUES
@@ -62,7 +62,7 @@ async function seedSQLiteData() {
           return;
         }
         
-        if (row.count === 0) {
+        if ((row as any).count === 0) {
           // Insert sample vehicles
           const vehicleQueries = [
             `INSERT INTO ds_vehicle (vin_number, make, model, year, color, mileage, price, status, created_at, updated_at) VALUES 
@@ -92,7 +92,7 @@ async function seedSQLiteData() {
             return;
           }
           
-          if (row.count === 0) {
+          if ((row as any).count === 0) {
             // Insert sample customers
             const customerQueries = [
               `INSERT INTO ds_customer (first_name, last_name, phone_number, email, address, created_at, updated_at) VALUES 
