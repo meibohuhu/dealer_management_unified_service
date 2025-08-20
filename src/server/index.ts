@@ -186,18 +186,14 @@ const startServer = async () => {
     const usePostgres = process.env.USE_SQLITE !== 'true';
     console.log(`USE_SQLITE=${process.env.USE_SQLITE}, usePostgres=${usePostgres}`);
     
-    // Force SQLite for now to avoid deployment issues
-    const forceSQLite = true;
-    console.log(`Forcing SQLite: ${forceSQLite}`);
-    
-    await initializeDatabase(!forceSQLite);
-    console.log(`Database initialized (SQLite)`);
+    await initializeDatabase(usePostgres);
+    console.log(`Database initialized (${usePostgres ? 'PostgreSQL' : 'SQLite'})`);
 
     // Set up API routes after database is ready
     setupRoutes();
 
     // Seed sample data
-    await seedSampleData(!forceSQLite);
+    await seedSampleData(usePostgres);
     console.log('Sample data seeding completed');
 
     app.listen(PORT, () => {

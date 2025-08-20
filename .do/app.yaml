@@ -18,8 +18,9 @@ services:
       - key: PORT
         value: "8080"
       - key: USE_SQLITE
-        value: "true"
-      # DATABASE_URL will be set automatically by DigitalOcean when using managed database
+        value: "false"
+      - key: DATABASE_URL
+        value: "postgresql://doadmin:YOUR_PASSWORD_HERE@db-postgresql-nyc1-42478-do-user-24533786-0.d.db.ondigitalocean.com:25060/defaultdb?sslmode=require"
       - key: VITE_SPACES_ENDPOINT
         value: "https://sfo3.digitaloceanspaces.com"
       - key: VITE_SPACES_BUCKET
@@ -33,11 +34,8 @@ services:
       - key: VITE_SPACES_CDN_ENDPOINT
         value: "https://dealer-management-files.sfo3.cdn.digitaloceanspaces.com"
 
-# Database configuration - using SQLite for now
-# databases:
-#   - name: db
-#     engine: PG
-#     version: "15"
-#     production: false
+# External PostgreSQL cluster configuration
+# The app will connect to your managed PostgreSQL cluster
+# instead of using the built-in database component
 
 # Spaces configuration will be set up separately via environment variables
