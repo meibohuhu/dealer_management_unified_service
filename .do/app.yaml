@@ -18,10 +18,8 @@ services:
       - key: PORT
         value: "8080"
       - key: USE_SQLITE
-        value: "false"
-      - key: DATABASE_URL
-        scope: RUN_TIME
-        value: ${db.DATABASE_URL}
+        value: "true"
+      # DATABASE_URL will be set automatically by DigitalOcean when using managed database
       - key: VITE_SPACES_ENDPOINT
         value: "https://sfo3.digitaloceanspaces.com"
       - key: VITE_SPACES_BUCKET
@@ -35,10 +33,11 @@ services:
       - key: VITE_SPACES_CDN_ENDPOINT
         value: "https://dealer-management-files.sfo3.cdn.digitaloceanspaces.com"
 
-databases:
-  - name: db
-    engine: PG
-    version: "15"
-    production: false
+# Database configuration - using SQLite for now
+# databases:
+#   - name: db
+#     engine: PG
+#     version: "15"
+#     production: false
 
 # Spaces configuration will be set up separately via environment variables
