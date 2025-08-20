@@ -1,5 +1,5 @@
 name: dealer-management-system
-region: nyc
+region: sfo3
 services:
   - name: web
     source_dir: /
