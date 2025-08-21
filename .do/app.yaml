@@ -6,7 +6,8 @@ services:
     github:
       repo: meibohuhu/dealer_management_unified_service
       branch: main
-    run_command: npm start
+    build_command: npm run build
+    run_command: bash deploy.sh
     environment_slug: node-js
     instance_count: 1
     instance_size_slug: basic-xxs
@@ -24,7 +25,7 @@ services:
       - key: VITE_API_BASE_URL
         value: "https://dealer-management-system-djlol.ondigitalocean.app/api"
       - key: DATABASE_URL
-        value: "postgresql://doadmin:YOUR_PASSWORD_HERE@db-postgresql-sfo3-67804-do-user-24533786-0.m.db.ondigitalocean.com:25060/defaultdb?sslmode=require"
+        value: "YOUR_DATABASE_URL_HERE"
       - key: VITE_SPACES_ENDPOINT
         value: "https://sfo3.digitaloceanspaces.com"
       - key: VITE_SPACES_BUCKET
@@ -32,9 +33,9 @@ services:
       - key: VITE_SPACES_REGION
         value: "sfo3"
       - key: VITE_SPACES_ACCESS_KEY_ID
-        value: "DO00XHDZDXNLWNRJFQAF"
+        value: "YOUR_SPACES_ACCESS_KEY_ID_HERE"
       - key: VITE_SPACES_SECRET_ACCESS_KEY
-        value: "00KD1HtcOHBtW91dDig8Bir9EHH8t5rTFrmioqseQ1c"
+        value: "YOUR_SPACES_SECRET_ACCESS_KEY_HERE"
       - key: VITE_SPACES_CDN_ENDPOINT
         value: "https://dealer-management-files.sfo3.cdn.digitaloceanspaces.com"
 

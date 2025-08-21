@@ -44,7 +44,7 @@ if (process.env.NODE_ENV === 'production') {
 // CORS configuration
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['https://yourdomain.com'] // Replace with your production domain
+    ? ['https://dealer-management-system-djlol.ondigitalocean.app'] // DigitalOcean app domain
     : ['http://localhost:3000', 'http://localhost:8080'],
   credentials: true
 }));
@@ -61,7 +61,10 @@ app.get('/health', (req, res) => {
     status: 'healthy',
     service: 'dealer-management-system',
     version: config.app.version,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV,
+    port: process.env.PORT,
+    useSqlite: process.env.USE_SQLITE
   });
 });
 
@@ -93,6 +96,43 @@ app.get('/test-spaces', (req, res) => {
     config: spacesConfig,
     isConfigured: !!(spacesConfig.endpoint && spacesConfig.bucket && spacesConfig.accessKeyId && spacesConfig.secretAccessKey)
   });
+});
+
+// Debug endpoint to check production build files
+app.get('/debug-build', (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  
+  try {
+    const distPath = path.join(process.cwd(), 'dist');
+    const clientPath = path.join(distPath, 'client');
+    
+    const distExists = fs.existsSync(distPath);
+    const clientExists = fs.existsSync(clientPath);
+    const indexExists = fs.existsSync(path.join(clientPath, 'index.html'));
+    
+    let clientFiles = [];
+    if (clientExists) {
+      clientFiles = fs.readdirSync(clientPath);
+    }
+    
+    res.json({
+      message: 'Build Debug Information',
+      distExists,
+      clientExists,
+      indexExists,
+      clientFiles,
+      cwd: process.cwd(),
+      distPath,
+      clientPath
+    });
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    res.status(500).json({
+      error: 'Failed to check build files',
+      message: errorMessage
+    });
+  }
 });
 
 // Database migration endpoint (for development/testing)
@@ -130,7 +170,10 @@ app.get('/', (req, res) => {
   res.json({
     message: 'Welcome to Dealer Management System API',
     docs: '/api',
-    health: '/health'
+    health: '/health',
+    debug: '/debug-build',
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -173,25 +216,43 @@ const startServer = async () => {
     console.log('Environment variables:', {
       USE_SQLITE: process.env.USE_SQLITE,
       NODE_ENV: process.env.NODE_ENV,
-      PORT: process.env.PORT
+      PORT: process.env.PORT,
+      DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'NOT SET'
     });
+    
+    if (process.env.DATABASE_URL) {
+      const dbUrl = process.env.DATABASE_URL;
+      const maskedUrl = dbUrl.replace(/:([^:@]+)@/, ':****@');
+      console.log(`Database URL: ${maskedUrl}`);
+    }
     
     const usePostgres = process.env.USE_SQLITE !== 'true';
     console.log(`USE_SQLITE=${process.env.USE_SQLITE}, usePostgres=${usePostgres}`);
     
-    await initializeDatabase(usePostgres);
-    console.log(`Database initialized (${usePostgres ? 'PostgreSQL' : 'SQLite'})`);
+    try {
+      await initializeDatabase(usePostgres);
+      console.log(`Database initialized (${usePostgres ? 'PostgreSQL' : 'SQLite'})`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Failed to initialize database:', errorMessage);
+      throw new Error(`Database initialization failed: ${errorMessage}`);
+    }
 
     // Set up API routes after database is ready
     setupRoutes();
 
     // Serve static files from the React build (AFTER API routes)
     if (process.env.NODE_ENV === 'production') {
-      app.use(express.static(process.cwd() + '/dist/client'));
+      const staticPath = process.cwd() + '/dist/client';
+      console.log(`Serving static files from: ${staticPath}`);
+      
+      app.use(express.static(staticPath));
       
       // Handle React routing, return all requests to React app
+      // This must come AFTER all API routes to avoid interfering with them
       app.get('*', (req, res) => {
-        res.sendFile(process.cwd() + '/dist/client/index.html');
+        console.log(`Serving React app for route: ${req.path}`);
+        res.sendFile(staticPath + '/index.html');
       });
     }
 
@@ -203,9 +264,14 @@ const startServer = async () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 Health check: http://localhost:${PORT}/health`);
       console.log(`🔗 API base: http://localhost:${PORT}/api`);
+      console.log(`🔍 Debug build info: http://localhost:${PORT}/debug-build`);
       
       if (process.env.NODE_ENV !== 'production') {
         console.log(`🌐 Frontend dev server: http://localhost:3000`);
+      } else {
+        console.log(`🏗️ Production mode - serving static files from dist/client`);
+        console.log(`📁 Current working directory: ${process.cwd()}`);
+        console.log(`📁 Static files path: ${process.cwd()}/dist/client`);
       }
     });
   } catch (error) {
