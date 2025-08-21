@@ -25,6 +25,9 @@ dotenv.config();
 const app = express();
 const PORT = config.server.port || 8080;
 
+// Trust proxy for rate limiting behind load balancers
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 
@@ -131,16 +134,6 @@ app.get('/', (req, res) => {
   });
 });
 
-// Serve static files from the React build
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(process.cwd() + '/dist/client'));
-  
-  // Handle React routing, return all requests to React app
-  app.get('*', (req, res) => {
-    res.sendFile(process.cwd() + '/dist/client/index.html');
-  });
-}
-
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Unhandled error:', err);
@@ -191,6 +184,16 @@ const startServer = async () => {
 
     // Set up API routes after database is ready
     setupRoutes();
+
+    // Serve static files from the React build (AFTER API routes)
+    if (process.env.NODE_ENV === 'production') {
+      app.use(express.static(process.cwd() + '/dist/client'));
+      
+      // Handle React routing, return all requests to React app
+      app.get('*', (req, res) => {
+        res.sendFile(process.cwd() + '/dist/client/index.html');
+      });
+    }
 
     // Seed sample data
     await seedSampleData(usePostgres);

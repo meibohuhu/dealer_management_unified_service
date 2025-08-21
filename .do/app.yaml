@@ -17,10 +17,14 @@ services:
         value: production
       - key: PORT
         value: "8080"
+      - key: NODE_TLS_REJECT_UNAUTHORIZED
+        value: "0"
       - key: USE_SQLITE
         value: "false"
+      - key: VITE_API_BASE_URL
+        value: "https://dealer-management-system-djlol.ondigitalocean.app/api"
       - key: DATABASE_URL
-        value: "postgresql://doadmin:YOUR_PASSWORD_HERE@db-postgresql-nyc1-42478-do-user-24533786-0.d.db.ondigitalocean.com:25060/defaultdb?sslmode=require"
+        value: "postgresql://doadmin:YOUR_PASSWORD_HERE@db-postgresql-sfo3-67804-do-user-24533786-0.m.db.ondigitalocean.com:25060/defaultdb?sslmode=require"
       - key: VITE_SPACES_ENDPOINT
         value: "https://sfo3.digitaloceanspaces.com"
       - key: VITE_SPACES_BUCKET
