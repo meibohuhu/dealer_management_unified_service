@@ -174,10 +174,7 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ error: 'Route not found' });
-});
+// 404 handler - MOVED to end of route registration
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
@@ -229,10 +226,7 @@ const startServer = async () => {
       throw new Error(`Database initialization failed: ${errorMessage}`);
     }
 
-    // Set up API routes after database is ready
-    setupRoutes();
-
-    // Serve static files from the React build (AFTER API routes)
+    // Serve static files from the React build (BEFORE API routes)
     console.log(`NODE_ENV check: ${process.env.NODE_ENV}`);
     console.log(`NODE_ENV === 'production': ${process.env.NODE_ENV === 'production'}`);
     
@@ -248,14 +242,9 @@ const startServer = async () => {
       console.log(`dist/client directory exists: ${clientExists}`);
       
       if (clientExists) {
+        // Serve static files FIRST
         app.use(express.static(staticPath));
-        
-        // Handle React routing, return all requests to React app
-        // This must come AFTER all API routes to avoid interfering with them
-        app.get('*', (req, res) => {
-          console.log(`Serving React app for route: ${req.path}`);
-          res.sendFile(staticPath + '/index.html');
-        });
+        console.log('Static file middleware registered successfully');
       } else {
         console.log('ERROR: dist/client directory does not exist! Build may have failed.');
         console.log('Available directories:', fs.readdirSync(process.cwd()));
@@ -263,6 +252,17 @@ const startServer = async () => {
     } else {
       console.log('Not in production mode, skipping static file serving');
     }
+
+    // Set up API routes AFTER static file serving
+    setupRoutes();
+
+    // No catch-all route needed - express.static() will handle all non-API routes
+    // The static file serving will automatically serve index.html for any route that doesn't match an API route
+
+    // 404 handler - MUST come AFTER all other routes
+    app.use('*', (req, res) => {
+      res.status(404).json({ error: 'Route not found' });
+    });
 
     // Seed sample data
     await seedSampleData(usePostgres);
