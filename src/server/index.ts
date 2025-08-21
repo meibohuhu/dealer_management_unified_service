@@ -242,18 +242,35 @@ const startServer = async () => {
     setupRoutes();
 
     // Serve static files from the React build (AFTER API routes)
+    console.log(`NODE_ENV check: ${process.env.NODE_ENV}`);
+    console.log(`NODE_ENV === 'production': ${process.env.NODE_ENV === 'production'}`);
+    
     if (process.env.NODE_ENV === 'production') {
       const staticPath = process.cwd() + '/dist/client';
       console.log(`Serving static files from: ${staticPath}`);
       
-      app.use(express.static(staticPath));
+      // Check if the directory exists
+      const fs = require('fs');
+      const distExists = fs.existsSync(process.cwd() + '/dist');
+      const clientExists = fs.existsSync(staticPath);
+      console.log(`dist directory exists: ${distExists}`);
+      console.log(`dist/client directory exists: ${clientExists}`);
       
-      // Handle React routing, return all requests to React app
-      // This must come AFTER all API routes to avoid interfering with them
-      app.get('*', (req, res) => {
-        console.log(`Serving React app for route: ${req.path}`);
-        res.sendFile(staticPath + '/index.html');
-      });
+      if (clientExists) {
+        app.use(express.static(staticPath));
+        
+        // Handle React routing, return all requests to React app
+        // This must come AFTER all API routes to avoid interfering with them
+        app.get('*', (req, res) => {
+          console.log(`Serving React app for route: ${req.path}`);
+          res.sendFile(staticPath + '/index.html');
+        });
+      } else {
+        console.log('ERROR: dist/client directory does not exist! Build may have failed.');
+        console.log('Available directories:', fs.readdirSync(process.cwd()));
+      }
+    } else {
+      console.log('Not in production mode, skipping static file serving');
     }
 
     // Seed sample data
