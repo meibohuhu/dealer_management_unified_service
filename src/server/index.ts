@@ -165,17 +165,8 @@ app.post('/migrate-db', async (req, res) => {
   }
 });
 
-// Root endpoint
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Welcome to Dealer Management System API',
-    docs: '/api',
-    health: '/health',
-    debug: '/debug-build',
-    environment: process.env.NODE_ENV,
-    timestamp: new Date().toISOString()
-  });
-});
+// Root endpoint - REMOVED to allow React app to be served
+// The static file serving will handle the root route and serve the React app
 
 // Error handling middleware
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
