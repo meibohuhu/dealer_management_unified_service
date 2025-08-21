@@ -7,7 +7,7 @@ services:
       repo: meibohuhu/dealer_management_unified_service
       branch: main
     build_command: npm run build
-    run_command: bash deploy.sh
+    run_command: npm start
     environment_slug: node-js
     instance_count: 1
     instance_size_slug: basic-xxs
