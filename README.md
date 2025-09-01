@@ -10,6 +10,7 @@ This is a unified TypeScript-based service that combines both the backend API an
 - **Database Support**: PostgreSQL (primary) and SQLite (fallback) support
 - **Type Safety**: Full TypeScript support for both backend and frontend
 - **Modern Tooling**: Vite for frontend development, ES modules, and modern Node.js features
+- **Production Ready**: Optimized for DigitalOcean App Platform deployment
 
 ## Project Structure
 
