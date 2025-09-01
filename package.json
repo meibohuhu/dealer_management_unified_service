@@ -8,7 +8,7 @@
     "dev:server": "nodemon --exec tsx src/server/index.ts",
     "dev:client": "vite",
     "build": "npm run build:server && npm run build:client",
-    "build:server": "npx tsc -p tsconfig.server.json",
+    "build:server": "npx tsc -p tsconfig.server.json --skipLibCheck",
     "build:client": "vite build",
     "start": "node dist/server/index.js",
     "preview": "vite preview",
