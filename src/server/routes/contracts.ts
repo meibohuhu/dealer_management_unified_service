@@ -10,7 +10,8 @@ export const createContractsRouter = () => {
   // Initialize service lazily
   function getContractService(): ContractService {
     if (!contractService) {
-      contractService = new ContractService();
+      const usePostgres = process.env.USE_SQLITE !== 'true';
+      contractService = new ContractService(usePostgres);
     }
     return contractService;
   }
@@ -40,6 +41,7 @@ const ContractCreateSchema = z.object({
     return date;
   }),
   payment_amount: z.number().positive(),
+  tax_amount: z.number().min(0),
   deposit_amount: z.number().min(0),
   status: z.string().optional(),
   created_by: z.string().optional()
@@ -71,6 +73,7 @@ const ContractUpdateSchema = z.object({
     return date;
   }),
   payment_amount: z.number().positive().optional(),
+  tax_amount: z.number().min(0).optional(),
   deposit_amount: z.number().min(0).optional(),
   status: z.string().optional(),
   created_by: z.string().optional()

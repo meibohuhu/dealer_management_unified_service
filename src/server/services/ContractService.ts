@@ -21,8 +21,8 @@ export class ContractService {
         INSERT INTO ds_contract (
           contract_number, vehicle_id, customer_id, vin_number, 
           customer_name, customer_phone, start_date, end_date, 
-          payment_amount, deposit_amount, status, created_by, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          payment_amount, tax_amount, deposit_amount, status, created_by, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
         RETURNING *
       `;
       
@@ -36,6 +36,7 @@ export class ContractService {
         contractData.start_date,
         contractData.end_date,
         contractData.payment_amount,
+        contractData.tax_amount || 0,
         contractData.deposit_amount,
         contractData.status || 'active',
         contractData.created_by,
@@ -53,8 +54,8 @@ export class ContractService {
           INSERT INTO ds_contract (
             contract_number, vehicle_id, customer_id, vin_number, 
             customer_name, customer_phone, start_date, end_date, 
-            payment_amount, deposit_amount, status, created_by, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            payment_amount, tax_amount, deposit_amount, status, created_by, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         
         const values = [
@@ -67,6 +68,7 @@ export class ContractService {
           contractData.start_date.toISOString(),
           contractData.end_date.toISOString(),
           contractData.payment_amount,
+          contractData.tax_amount || 0,
           contractData.deposit_amount,
           contractData.status || 'active',
           contractData.created_by,
@@ -95,7 +97,15 @@ export class ContractService {
   async getContractById(id: string): Promise<ContractDetailResponse | null> {
     if (this.usePostgres) {
       const query = `
-        SELECT c.*, v.*, cust.*
+        SELECT c.id as contract_id, c.contract_number, c.vehicle_id, c.customer_id, c.vin_number, 
+               c.customer_name, c.customer_phone, c.start_date, c.end_date, c.payment_amount, 
+               c.tax_amount, c.deposit_amount, c.status, c.created_by, c.created_at, c.updated_at,
+               v.id as vehicle_id, v.vin_number as vehicle_vin, v.make, v.model, v.year, v.color, 
+               v.mileage, v.price, v.status as vehicle_status, v.created_at as vehicle_created_at, 
+               v.updated_at as vehicle_updated_at,
+               cust.id as customer_id, cust.first_name, cust.last_name, cust.phone_number, 
+               cust.email, cust.address, cust.created_at as customer_created_at, 
+               cust.updated_at as customer_updated_at
         FROM ds_contract c
         LEFT JOIN ds_vehicle v ON c.vehicle_id = v.id
         LEFT JOIN ds_customer cust ON c.customer_id = cust.id
@@ -221,7 +231,7 @@ export class ContractService {
 
   private mapToContractDetailResponse(data: any): ContractDetailResponse {
     return {
-      id: data.id,
+      id: data.contract_id,
       contract_number: data.contract_number,
       vehicle_id: data.vehicle_id,
       customer_id: data.customer_id,
@@ -231,6 +241,7 @@ export class ContractService {
       start_date: new Date(data.start_date),
       end_date: new Date(data.end_date),
       payment_amount: data.payment_amount,
+      tax_amount: data.tax_amount,
       deposit_amount: data.deposit_amount,
       status: data.status,
       created_by: data.created_by,
@@ -239,7 +250,7 @@ export class ContractService {
       images: [], // TODO: Implement image fetching
       vehicle: {
         id: data.vehicle_id,
-        vin_number: data.vin_number,
+        vin_number: data.vehicle_vin,
         make: data.make,
         model: data.model,
         year: data.year,

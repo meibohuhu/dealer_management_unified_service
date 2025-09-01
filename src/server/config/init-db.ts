@@ -108,6 +108,7 @@ async function initializePostgres() {
         start_date TIMESTAMP NOT NULL,
         end_date TIMESTAMP NOT NULL,
         payment_amount DECIMAL(10,2) NOT NULL,
+        tax_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
         deposit_amount DECIMAL(10,2) NOT NULL,
         status VARCHAR(50) DEFAULT 'active',
         created_by VARCHAR(100),
@@ -115,6 +116,13 @@ async function initializePostgres() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Add tax_amount column if it doesn't exist
+    try {
+      await client.query('ALTER TABLE ds_contract ADD COLUMN IF NOT EXISTS tax_amount DECIMAL(10,2) NOT NULL DEFAULT 0');
+    } catch (error) {
+      console.log('tax_amount column already exists or could not be added');
+    }
 
     await client.query(`
       CREATE TABLE IF NOT EXISTS ds_contract_image (
@@ -202,6 +210,7 @@ async function initializeSQLite() {
           start_date TEXT NOT NULL,
           end_date TEXT NOT NULL,
           payment_amount REAL NOT NULL,
+          tax_amount REAL NOT NULL DEFAULT 0,
           deposit_amount REAL NOT NULL,
           status TEXT DEFAULT 'active',
           created_by TEXT,
@@ -211,6 +220,13 @@ async function initializeSQLite() {
           FOREIGN KEY (customer_id) REFERENCES ds_customer(id)
         )
       `);
+
+      // Add tax_amount column if it doesn't exist for SQLite
+      db.run('ALTER TABLE ds_contract ADD COLUMN tax_amount REAL DEFAULT 0', (err) => {
+        if (err && !err.message.includes('duplicate column name')) {
+          console.log('tax_amount column already exists or could not be added');
+        }
+      });
 
       db.run(`
         CREATE TABLE IF NOT EXISTS ds_contract_image (

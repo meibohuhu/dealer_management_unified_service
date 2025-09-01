@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Eye, Trash2, Loader2, Calendar, DollarSign, User, Car } from "lucide-react";
+import { Plus, Search, Eye, Trash2, Loader2, DollarSign, User, Car, ChevronUp, ChevronDown, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { format } from "date-fns";
 
 import { MainLayout } from "@/components/layout/MainLayout";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -50,7 +52,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Contract, ContractCreate, Vehicle, Customer } from "@/types";
 import { contractApi, vehicleApi, customerApi } from "@/lib/api";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 const contractSchema = z.object({
   contract_number: z.string().min(1, "Contract number is required"),
@@ -59,8 +61,9 @@ const contractSchema = z.object({
   start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().min(1, "End date is required"),
   payment_amount: z.coerce.number().positive("Payment must be greater than 0"),
+  tax_amount: z.coerce.number().nonnegative("Tax must be at least 0"),
   deposit_amount: z.coerce.number().nonnegative("Deposit must be at least 0"),
-  status: z.enum(["active", "completed", "cancelled"]),
+  status: z.enum(["active", "returned", "completed", "cancelled"]),
 });
 
 export default function Contracts() {
@@ -71,8 +74,13 @@ export default function Contracts() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchType, setSearchType] = useState<"contract" | "vin" | "customer">("contract");
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortField, setSortField] = useState<string>("");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isStatusUpdateDialogOpen, setIsStatusUpdateDialogOpen] = useState(false);
+  const [pendingStatusUpdate, setPendingStatusUpdate] = useState<{contractId: number, newStatus: string} | null>(null);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [page, setPage] = useState(1);
@@ -89,6 +97,7 @@ export default function Contracts() {
       start_date: new Date().toISOString().split("T")[0],
       end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
       payment_amount: 0,
+      tax_amount: 0,
       deposit_amount: 0,
       status: "active",
     },
@@ -98,9 +107,16 @@ export default function Contracts() {
     try {
       setIsLoading(true);
       const response = await contractApi.getAll((page - 1) * ITEMS_PER_PAGE, ITEMS_PER_PAGE);
-      setContracts(response.data);
-      setTotalContracts(response.total);
-      setTotalPages(Math.ceil(response.total / ITEMS_PER_PAGE));
+      let filteredContracts = response.data;
+      
+      // Apply status filter if not "all"
+      if (statusFilter !== "all") {
+        filteredContracts = filteredContracts.filter(contract => contract.status === statusFilter);
+      }
+      
+      setContracts(filteredContracts);
+      setTotalContracts(filteredContracts.length);
+      setTotalPages(Math.ceil(filteredContracts.length / ITEMS_PER_PAGE));
     } catch (error) {
       console.error("Error fetching contracts:", error);
       toast.error("Failed to load contracts");
@@ -255,7 +271,7 @@ export default function Contracts() {
   useEffect(() => {
     fetchContracts();
     fetchVehiclesAndCustomers();
-  }, [page]);
+  }, [page, statusFilter]);
 
   const handleSearchTypeChange = (value: string) => {
     setSearchType(value as "contract" | "vin" | "customer");
@@ -314,6 +330,9 @@ export default function Contracts() {
 
   const resetSearch = () => {
     setSearchQuery("");
+    setStatusFilter("all");
+    setSortField("");
+    setSortDirection("asc");
     fetchContracts();
   };
 
@@ -347,6 +366,7 @@ export default function Contracts() {
         start_date: formatDateWithTime(data.start_date),
         end_date: formatDateWithTime(data.end_date),
         payment_amount: data.payment_amount,
+        tax_amount: data.tax_amount,
         deposit_amount: data.deposit_amount,
         status: data.status,
       });
@@ -390,6 +410,71 @@ export default function Contracts() {
   const openDeleteDialog = (contract: Contract) => {
     setSelectedContract(contract);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleStatusUpdate = async (contractId: number, newStatus: string) => {
+    const contract = contracts.find(c => c.id === contractId);
+    if (!contract) return;
+
+    // Show confirmation dialog
+    setPendingStatusUpdate({ contractId, newStatus });
+    setSelectedContract(contract);
+    setIsStatusUpdateDialogOpen(true);
+  };
+
+  const confirmStatusUpdate = async () => {
+    if (!pendingStatusUpdate) return;
+    
+    try {
+      setIsSubmitting(true);
+      const { contractId, newStatus } = pendingStatusUpdate;
+
+      const updatedContract = await contractApi.update(contractId.toString(), {
+        status: newStatus,
+      });
+      
+      setContracts(contracts.map(c => c.id === contractId ? updatedContract : c));
+      toast.success("Status updated successfully");
+      setIsStatusUpdateDialogOpen(false);
+      setPendingStatusUpdate(null);
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast.error("Failed to update status");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const getSortedContracts = () => {
+    if (!sortField) return contracts;
+    
+    return [...contracts].sort((a, b) => {
+      let aValue: any;
+      let bValue: any;
+      
+      if (sortField === "start_date" || sortField === "end_date") {
+        aValue = new Date(a[sortField as keyof Contract] as string);
+        bValue = new Date(b[sortField as keyof Contract] as string);
+      } else {
+        aValue = a[sortField as keyof Contract];
+        bValue = b[sortField as keyof Contract];
+      }
+      
+      if (sortDirection === "asc") {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
   };
 
   const viewContractDetails = (contractId: number) => {
@@ -470,6 +555,18 @@ export default function Contracts() {
                 }}
               />
             </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="returned">Returned</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
             <Button variant="secondary" onClick={handleSearch}>Search</Button>
             <Button variant="outline" onClick={resetSearch}>Reset</Button>
           </div>
@@ -488,40 +585,71 @@ export default function Contracts() {
                     <TableHead>Contract #</TableHead>
                     <TableHead>Vehicle</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Period</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort("start_date")}
+                    >
+                      <div className="flex items-center gap-1">
+                        Start Date
+                        {sortField === "start_date" && (
+                          sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-50"
+                      onClick={() => handleSort("end_date")}
+                    >
+                      <div className="flex items-center gap-1">
+                        End Date
+                        {sortField === "end_date" && (
+                          sortDirection === "asc" ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                        )}
+                      </div>
+                    </TableHead>
                     <TableHead>Payment</TableHead>
+                    <TableHead>Tax</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Array.isArray(contracts) && contracts.length === 0 ? (
+                  {Array.isArray(getSortedContracts()) && getSortedContracts().length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                         {searchQuery
                           ? "No contracts match your search"
                           : "No contracts found. Add a contract to get started."}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    (contracts ?? []).map((contract) => (
+                    (getSortedContracts() ?? []).map((contract) => (
                       <TableRow key={contract.id}>
                         <TableCell className="font-medium">{contract.contract_number}</TableCell>
                         <TableCell className="max-w-[200px] truncate">
                           {getVehicleInfo(contract.vehicle_id)}
                         </TableCell>
                         <TableCell>{getCustomerInfo(contract.customer_id)}</TableCell>
-                        <TableCell>
-                          <div className="flex flex-col text-sm">
-                            <span>{formatDate(contract.start_date)}</span>
-                            <span>to {formatDate(contract.end_date)}</span>
-                          </div>
-                        </TableCell>
+                        <TableCell>{formatDate(contract.start_date)}</TableCell>
+                        <TableCell>{formatDate(contract.end_date)}</TableCell>
                         <TableCell>${Number(contract.payment_amount).toFixed(2)}</TableCell>
+                        <TableCell>${Number(contract.tax_amount).toFixed(2)}</TableCell>
                         <TableCell>
-                          <Badge variant={getStatusBadgeVariant(contract.status)}>
-                            {contract.status.charAt(0).toUpperCase() + contract.status.slice(1)}
-                          </Badge>
+                          <Select
+                            value={contract.status}
+                            onValueChange={(newStatus) => handleStatusUpdate(contract.id, newStatus)}
+                            disabled={isSubmitting}
+                          >
+                            <SelectTrigger className="w-[120px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="active">Active</SelectItem>
+                              <SelectItem value="returned">Returned</SelectItem>
+                              <SelectItem value="completed">Completed</SelectItem>
+                              <SelectItem value="cancelled">Cancelled</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
@@ -586,7 +714,7 @@ export default function Contracts() {
 
       {/* Add Contract Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Contract</DialogTitle>
             <DialogDescription>
@@ -594,167 +722,226 @@ export default function Contracts() {
             </DialogDescription>
           </DialogHeader>
           <Form {...addForm}>
-            <form onSubmit={addForm.handleSubmit(handleAddContract)} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={addForm.control}
-                  name="contract_number"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contract Number</FormLabel>
-                      <FormControl>
-                        <Input placeholder="CONT-001" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={addForm.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+            <form onSubmit={addForm.handleSubmit(handleAddContract)} className="space-y-6">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Basic Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={addForm.control}
+                    name="contract_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contract Number *</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
+                          <Input placeholder="CONT-001" {...field} />
                         </FormControl>
-                        <SelectContent>
-                          <SelectItem value="active">Active</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={addForm.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="active">Active</SelectItem>
+                            <SelectItem value="returned">Returned</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
 
-                <FormField
-                  control={addForm.control}
-                  name="vehicle_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Vehicle</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+              {/* Vehicle and Customer Selection */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Vehicle & Customer</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={addForm.control}
+                    name="vehicle_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Vehicle *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select vehicle" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {vehicles.map((vehicle) => (
+                              <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{vehicle.year} {vehicle.make} {vehicle.model}</span>
+                                  <span className="text-xs text-muted-foreground">VIN: {vehicle.vin_number}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={addForm.control}
+                    name="customer_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Customer *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select customer" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {customers.map((customer) => (
+                              <SelectItem key={customer.id} value={customer.id.toString()}>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{customer.first_name} {customer.last_name}</span>
+                                  <span className="text-xs text-muted-foreground">{customer.phone_number}</span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              {/* Rental Period */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Rental Period</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={addForm.control}
+                    name="start_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Start Date *</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select vehicle" />
-                          </SelectTrigger>
+                          <Input
+                            type="date"
+                            {...field}
+                          />
                         </FormControl>
-                        <SelectContent>
-                          {vehicles.map((vehicle) => (
-                            <SelectItem key={vehicle.id} value={vehicle.id.toString()}>
-                              {vehicle.year} {vehicle.make} {vehicle.model} ({vehicle.vin_number})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={addForm.control}
-                  name="customer_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Customer</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+                  <FormField
+                    control={addForm.control}
+                    name="end_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>End Date *</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select customer" />
-                          </SelectTrigger>
+                          <Input
+                            type="date"
+                            {...field}
+                          />
                         </FormControl>
-                        <SelectContent>
-                          {customers.map((customer) => (
-                            <SelectItem key={customer.id} value={customer.id.toString()}>
-                              {customer.first_name} {customer.last_name} ({customer.phone_number})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
 
-                <FormField
-                  control={addForm.control}
-                  name="start_date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Start Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              {/* Financial Information */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Financial Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={addForm.control}
+                    name="payment_amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Payment Amount ($) *</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="500.00"
+                            step="0.01"
+                            min="0"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={addForm.control}
-                  name="end_date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>End Date</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={addForm.control}
+                    name="tax_amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tax Amount ($) *</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="50.00"
+                            step="0.01"
+                            min="0"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={addForm.control}
-                  name="payment_amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Payment ($)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="500"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={addForm.control}
-                  name="deposit_amount"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Deposit ($)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          placeholder="200"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={addForm.control}
+                    name="deposit_amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Deposit Amount ($) *</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            placeholder="200.00"
+                            step="0.01"
+                            min="0"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </div>
 
               <DialogFooter>
@@ -778,6 +965,70 @@ export default function Contracts() {
               </DialogFooter>
             </form>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Status Update Confirmation Dialog */}
+      <Dialog open={isStatusUpdateDialogOpen} onOpenChange={setIsStatusUpdateDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirm Status Update</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to update the contract status?
+            </DialogDescription>
+          </DialogHeader>
+          {selectedContract && pendingStatusUpdate && (
+            <div className="space-y-2 py-4">
+              <div className="flex items-center">
+                <span className="font-medium">Contract: {selectedContract.contract_number}</span>
+              </div>
+              <div className="flex items-center">
+                <Car className="h-4 w-4 mr-2" />
+                <span>{getVehicleInfo(selectedContract.vehicle_id)}</span>
+              </div>
+              <div className="flex items-center">
+                <User className="h-4 w-4 mr-2" />
+                <span>{getCustomerInfo(selectedContract.customer_id)}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="font-medium">Current Status: </span>
+                <Badge variant={getStatusBadgeVariant(selectedContract.status)} className="ml-2">
+                  {selectedContract.status.charAt(0).toUpperCase() + selectedContract.status.slice(1)}
+                </Badge>
+              </div>
+              <div className="flex items-center">
+                <span className="font-medium">New Status: </span>
+                <Badge variant={getStatusBadgeVariant(pendingStatusUpdate.newStatus)} className="ml-2">
+                  {pendingStatusUpdate.newStatus.charAt(0).toUpperCase() + pendingStatusUpdate.newStatus.slice(1)}
+                </Badge>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsStatusUpdateDialogOpen(false);
+                setPendingStatusUpdate(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={confirmStatusUpdate}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                "Update Status"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

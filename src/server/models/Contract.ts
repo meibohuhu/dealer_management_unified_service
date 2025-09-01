@@ -13,6 +13,7 @@ export interface Contract {
   start_date: Date;
   end_date: Date;
   payment_amount: number;
+  tax_amount: number;
   deposit_amount: number;
   status: string;
   created_by?: string;
@@ -30,6 +31,7 @@ export interface ContractCreate {
   start_date: Date;
   end_date: Date;
   payment_amount: number;
+  tax_amount: number;
   deposit_amount: number;
   status?: string;
   created_by?: string;
@@ -45,6 +47,7 @@ export interface ContractUpdate {
   start_date?: Date;
   end_date?: Date;
   payment_amount?: number;
+  tax_amount?: number;
   deposit_amount?: number;
   status?: string;
   created_by?: string;

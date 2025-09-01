@@ -42,7 +42,6 @@ import { contractApi, vehicleApi, customerApi, contractFileApi } from "@/lib/api
 import { FileUpload } from "@/components/ui/file-upload";
 import { FileViewer } from "@/components/ui/file-viewer";
 import { FilePreviewModal } from "@/components/ui/file-preview-modal";
-import { SpacesStatus } from "@/components/ui/spaces-status";
 
 const contractSchema = z.object({
   contract_number: z.string().min(1, "Contract number is required"),
@@ -51,8 +50,9 @@ const contractSchema = z.object({
   start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().min(1, "End date is required"),
   payment_amount: z.coerce.number().positive("Payment must be greater than 0"),
+  tax_amount: z.coerce.number().nonnegative("Tax must be at least 0"),
   deposit_amount: z.coerce.number().nonnegative("Deposit must be at least 0"),
-  status: z.enum(["active", "completed", "cancelled"]),
+  status: z.enum(["active", "returned", "completed", "cancelled"]),
 });
 
 export default function ContractDetail() {
@@ -78,6 +78,7 @@ export default function ContractDetail() {
       start_date: "",
       end_date: "",
       payment_amount: 0,
+      tax_amount: 0,
       deposit_amount: 0,
       status: "active",
     },
@@ -345,6 +346,7 @@ export default function ContractDetail() {
       start_date: formatDateForInput(contract.start_date),
       end_date: formatDateForInput(contract.end_date),
       payment_amount: contract.payment_amount,
+      tax_amount: contract.tax_amount,
       deposit_amount: contract.deposit_amount,
       status: contract.status,
     });
@@ -383,6 +385,7 @@ export default function ContractDetail() {
         start_date: formatDateWithTime(data.start_date),
         end_date: formatDateWithTime(data.end_date),
         payment_amount: data.payment_amount,
+        tax_amount: data.tax_amount,
         deposit_amount: data.deposit_amount,
         status: data.status,
       });
@@ -525,6 +528,10 @@ export default function ContractDetail() {
                   <p className="font-medium">${Number(contract.payment_amount).toFixed(2)}</p>
                 </div>
                 <div>
+                  <p className="text-sm font-medium text-muted-foreground">Tax</p>
+                  <p>${Number(contract.tax_amount || 0).toFixed(2)}</p>
+                </div>
+                <div>
                   <p className="text-sm font-medium text-muted-foreground">Deposit</p>
                   <p>${Number(contract.deposit_amount).toFixed(2)}</p>
                 </div>
@@ -643,11 +650,6 @@ export default function ContractDetail() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* DigitalOcean Spaces Status */}
-            <div className="mb-6">
-              <SpacesStatus />
-            </div>
-            
             <Tabs defaultValue="files" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="files">View Files</TabsTrigger>
@@ -726,6 +728,7 @@ export default function ContractDetail() {
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="returned">Returned</SelectItem>
                           <SelectItem value="completed">Completed</SelectItem>
                           <SelectItem value="cancelled">Cancelled</SelectItem>
                         </SelectContent>
@@ -829,6 +832,24 @@ export default function ContractDetail() {
                         <Input
                           type="number"
                           placeholder="500"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={editForm.control}
+                  name="tax_amount"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tax ($)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="50"
                           {...field}
                         />
                       </FormControl>

@@ -67,8 +67,9 @@ export interface Contract {
   start_date: string;
   end_date: string;
   payment_amount: number;
+  tax_amount: number;
   deposit_amount: number;
-  status: 'active' | 'completed' | 'cancelled';
+  status: 'active' | 'returned' | 'completed' | 'cancelled';
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -117,8 +118,9 @@ export interface ContractCreate {
   start_date: string;
   end_date: string;
   payment_amount: number;
+  tax_amount: number;
   deposit_amount: number;
-  status: 'active' | 'completed' | 'cancelled';
+  status: 'active' | 'returned' | 'completed' | 'cancelled';
 }
 
 export interface ContractUpdate {
@@ -131,8 +133,9 @@ export interface ContractUpdate {
   start_date?: string;
   end_date?: string;
   payment_amount?: number;
+  tax_amount?: number;
   deposit_amount?: number;
-  status?: 'active' | 'completed' | 'cancelled';
+  status?: 'active' | 'returned' | 'completed' | 'cancelled';
 }
 
 export interface User {
