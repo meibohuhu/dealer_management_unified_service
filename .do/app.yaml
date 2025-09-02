@@ -6,7 +6,7 @@ services:
     github:
       repo: meibohuhu/dealer_management_unified_service
       branch: main
-    build_command: npm run clean && npm run build
+    build_command: rm -rf node_modules package-lock.json && npm install && npm run build
     run_command: npm start
     environment_slug: node-js
     instance_count: 1
