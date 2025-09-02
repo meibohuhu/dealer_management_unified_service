@@ -12,6 +12,7 @@ const CustomerCreateSchema = z.object({
   last_name: z.string().min(1),
   phone_number: z.string().min(1),
   email: z.string().email().optional(),
+  gender: z.string().optional(),
   address: z.string().optional()
 });
 
@@ -20,6 +21,7 @@ const CustomerUpdateSchema = z.object({
   last_name: z.string().min(1).optional(),
   phone_number: z.string().min(1).optional(),
   email: z.string().email().optional(),
+  gender: z.string().optional(),
   address: z.string().optional()
 });
 

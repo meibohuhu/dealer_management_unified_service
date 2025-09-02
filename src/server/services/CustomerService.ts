@@ -101,8 +101,8 @@ export class CustomerService {
     if (this.usePostgres) {
       const query = `
         INSERT INTO ds_customer (
-          first_name, last_name, phone_number, email, address, created_at, updated_at
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+          first_name, last_name, phone_number, email, gender, address, created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING *
       `;
       
@@ -111,6 +111,7 @@ export class CustomerService {
         customerData.last_name,
         customerData.phone_number,
         customerData.email || null,
+        customerData.gender || null,
         customerData.address || null,
         new Date(),
         new Date()
@@ -123,8 +124,8 @@ export class CustomerService {
       return new Promise((resolve, reject) => {
         const query = `
           INSERT INTO ds_customer (
-            first_name, last_name, phone_number, email, address, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?)
+            first_name, last_name, phone_number, email, gender, address, created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
         
         const values = [
@@ -132,6 +133,7 @@ export class CustomerService {
           customerData.last_name,
           customerData.phone_number,
           customerData.email || null,
+          customerData.gender || null,
           customerData.address || null,
           new Date().toISOString(),
           new Date().toISOString()
@@ -177,6 +179,10 @@ export class CustomerService {
         updateFields.push(`email = $${paramCount++}`);
         values.push(customerData.email);
       }
+      if (customerData.gender !== undefined) {
+        updateFields.push(`gender = $${paramCount++}`);
+        values.push(customerData.gender);
+      }
       if (customerData.address !== undefined) {
         updateFields.push(`address = $${paramCount++}`);
         values.push(customerData.address);
@@ -216,6 +222,10 @@ export class CustomerService {
         if (customerData.email !== undefined) {
           updateFields.push('email = ?');
           values.push(customerData.email);
+        }
+        if (customerData.gender !== undefined) {
+          updateFields.push('gender = ?');
+          values.push(customerData.gender);
         }
         if (customerData.address !== undefined) {
           updateFields.push('address = ?');

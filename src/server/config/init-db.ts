@@ -77,6 +77,7 @@ async function initializePostgres() {
         last_name VARCHAR(100) NOT NULL,
         phone_number VARCHAR(50) NOT NULL,
         email VARCHAR(255),
+        gender VARCHAR(10),
         address TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -88,6 +89,12 @@ async function initializePostgres() {
       await client.query('ALTER TABLE ds_customer ADD COLUMN IF NOT EXISTS address TEXT');
     } catch (error) {
       console.log('address column already exists or could not be added');
+    }
+    
+    try {
+      await client.query('ALTER TABLE ds_customer ADD COLUMN IF NOT EXISTS gender VARCHAR(10)');
+    } catch (error) {
+      console.log('gender column already exists or could not be added');
     }
     
     try {
@@ -192,6 +199,7 @@ async function initializeSQLite() {
           last_name TEXT NOT NULL,
           phone_number TEXT NOT NULL,
           email TEXT,
+          gender TEXT,
           address TEXT,
           created_at TEXT DEFAULT CURRENT_TIMESTAMP,
           updated_at TEXT DEFAULT CURRENT_TIMESTAMP

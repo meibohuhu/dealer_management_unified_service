@@ -45,7 +45,7 @@ import { customerApi } from "@/lib/api";
 const customerSchema = z.object({
   first_name: z.string().min(2, "First name must be at least 2 characters"),
   last_name: z.string().min(2, "Last name must be at least 2 characters"),
-  gender: z.string().min(1, "Gender is required"),
+  gender: z.string().optional(),
   phone_number: z.string().min(10, "Phone number must be at least 10 characters"),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
 });
@@ -284,7 +284,7 @@ export default function Customers() {
                       <TableCell className="font-medium">{customer.first_name} {customer.last_name}</TableCell>
                       <TableCell>{customer.phone_number}</TableCell>
                       <TableCell>{customer.email || "-"}</TableCell>
-                      <TableCell>{customer.gender}</TableCell>
+                      <TableCell>{customer.gender ? customer.gender.charAt(0).toUpperCase() + customer.gender.slice(1) : "-"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button

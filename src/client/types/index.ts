@@ -33,7 +33,7 @@ export interface Customer {
   id: number;
   first_name: string;
   last_name: string;
-  gender: string;
+  gender?: string;
   phone_number: string;
   email: string;
   created_at: string;
@@ -43,7 +43,7 @@ export interface Customer {
 export interface CustomerCreate {
   first_name: string;
   last_name: string;
-  gender: string;
+  gender?: string;
   phone_number: string;
   email: string;
 }

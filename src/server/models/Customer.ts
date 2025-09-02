@@ -4,6 +4,7 @@ export interface Customer {
   last_name: string;
   phone_number: string;
   email?: string;
+  gender?: string;
   address?: string;
   created_at: Date;
   updated_at: Date;
@@ -14,6 +15,7 @@ export interface CustomerCreate {
   last_name: string;
   phone_number: string;
   email?: string;
+  gender?: string;
   address?: string;
 }
 
@@ -22,5 +24,6 @@ export interface CustomerUpdate {
   last_name?: string;
   phone_number?: string;
   email?: string;
+  gender?: string;
   address?: string;
 }
