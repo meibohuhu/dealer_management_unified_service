@@ -1,6 +1,6 @@
 {
   "name": "dealer-management-system",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Unified TypeScript-based Dealer Management System",
   "main": "dist/server/index.js",
   "scripts": {
