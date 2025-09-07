@@ -11,8 +11,8 @@ const VehicleCreateSchema = z.object({
   vin_number: z.string().length(17),
   make: z.string().min(1),
   model: z.string().min(1),
-  year: z.number().int().positive(),
-  color: z.string().min(1),
+  year: z.number().int().positive().optional(),
+  color: z.string().min(1).optional(),
   mileage: z.number().int().min(0).optional().default(0),
   price: z.number().min(0).optional().default(0),
   status: z.string().optional().default('available')

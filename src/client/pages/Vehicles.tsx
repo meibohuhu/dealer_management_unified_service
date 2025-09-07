@@ -46,8 +46,9 @@ const vehicleSchema = z.object({
   year: z.coerce
     .number()
     .min(1900, "Year must be at least 1900")
-    .max(new Date().getFullYear() + 1, `Year cannot be greater than ${new Date().getFullYear() + 1}`),
-  color: z.string().min(1, "Color is required"),
+    .max(new Date().getFullYear() + 1, `Year cannot be greater than ${new Date().getFullYear() + 1}`)
+    .optional(),
+  color: z.string().min(1, "Color is required").optional(),
 });
 
 export default function Vehicles() {

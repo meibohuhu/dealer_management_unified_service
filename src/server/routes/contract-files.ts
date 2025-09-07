@@ -92,36 +92,9 @@ router.get('/contract/:contractId', async (req: Request, res: Response) => {
   try {
     const { contractId } = req.params;
     
-    // For now, return mock data
-    // In a full implementation, you would query the database
-    const mockFiles: ContractImage[] = [
-      {
-        id: 1,
-        contract_id: parseInt(contractId),
-        file_name: "contract_agreement.pdf",
-        file_url: "https://example.com/files/contract_agreement.pdf",
-        file_size: 1024 * 1024, // 1MB
-        file_type: "application/pdf",
-        description: "Signed contract agreement",
-        uploaded_by: "admin",
-        image_path: `contracts/${contractId}/files/contract_agreement.pdf`,
-        uploaded_at: new Date()
-      },
-      {
-        id: 2,
-        contract_id: parseInt(contractId),
-        file_name: "vehicle_inspection.jpg",
-        file_url: "https://via.placeholder.com/800x600?text=Vehicle+Inspection",
-        file_size: 512 * 1024, // 512KB
-        file_type: "image/jpeg",
-        description: "Vehicle inspection photos",
-        uploaded_by: "staff",
-        image_path: `contracts/${contractId}/files/vehicle_inspection.jpg`,
-        uploaded_at: new Date()
-      }
-    ];
-
-    res.json(mockFiles);
+    // Return empty array - no example files
+    // In a full implementation, you would query the database for actual uploaded files
+    res.json([]);
   } catch (error) {
     console.error('Error fetching contract files:', error);
     res.status(500).json({ error: 'Internal server error' });

@@ -212,32 +212,11 @@ export const contractFileApi = {
 
   getByContract: async (contractId: string): Promise<ContractFile[]> => {
     try {
-      // In a real implementation, this would fetch from your backend
-      // For now, we'll return mock data
-      return [
-        {
-          id: "file1",
-          contract_id: contractId,
-          file_name: "contract_agreement.pdf",
-          file_url: "https://example.com/files/contract_agreement.pdf",
-          file_size: 1024 * 1024, // 1MB
-          file_type: "application/pdf",
-          description: "Signed contract agreement",
-          uploaded_by: "admin",
-          created_at: "2023-05-30T10:35:00Z",
-        },
-        {
-          id: "file2",
-          contract_id: contractId,
-          file_name: "vehicle_inspection.jpg",
-          file_url: "https://via.placeholder.com/800x600?text=Vehicle+Inspection",
-          file_size: 512 * 1024, // 512KB
-          file_type: "image/jpeg",
-          description: "Vehicle inspection photos",
-          uploaded_by: "staff",
-          created_at: "2023-05-30T11:00:00Z",
-        }
-      ];
+      const response = await fetch(`${API_BASE_URL}/contract-files/contract/${contractId}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
     } catch (error) {
       console.error("Error fetching contract files:", error);
       throw new Error(`Failed to fetch contract files: ${error instanceof Error ? error.message : 'Unknown error'}`);
