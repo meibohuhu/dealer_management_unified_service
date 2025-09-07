@@ -266,7 +266,7 @@ export const contractFileApi = {
 export const authApi = {
   login: async (username: string, password: string) => {
     // Hardcoded authentication
-    if (username === "admin" && password === "password") {
+    if (username === "admin" && password === "pangshu123") {
       return {
         id: "1",
         username: "admin",
