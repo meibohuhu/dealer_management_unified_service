@@ -16,8 +16,8 @@ export interface VehicleCreate {
   vin_number: string;
   make: string;
   model: string;
-  year: number;
-  color: string;
+  year?: number;
+  color?: string;
   mileage: number;
   price: number;
   status?: string;
