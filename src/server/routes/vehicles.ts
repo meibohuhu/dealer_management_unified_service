@@ -12,7 +12,7 @@ const VehicleCreateSchema = z.object({
   make: z.string().min(1),
   model: z.string().min(1),
   year: z.number().int().positive().optional(),
-  color: z.string().min(1).optional(),
+  color: z.string().optional(),
   mileage: z.number().int().min(0).optional().default(0),
   price: z.number().min(0).optional().default(0),
   status: z.string().optional().default('available')
@@ -23,7 +23,7 @@ const VehicleUpdateSchema = z.object({
   make: z.string().min(1).optional(),
   model: z.string().min(1).optional(),
   year: z.number().int().positive().optional(),
-  color: z.string().min(1).optional(),
+  color: z.string().optional(),
   mileage: z.number().int().min(0).optional(),
   price: z.number().min(0).optional(),
   status: z.string().optional()

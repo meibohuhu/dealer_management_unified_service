@@ -48,7 +48,7 @@ const vehicleSchema = z.object({
     .min(1900, "Year must be at least 1900")
     .max(new Date().getFullYear() + 1, `Year cannot be greater than ${new Date().getFullYear() + 1}`)
     .optional(),
-  color: z.string().min(1, "Color is required").optional(),
+  color: z.string().optional(),
 });
 
 export default function Vehicles() {
@@ -316,7 +316,7 @@ export default function Vehicles() {
           <DialogHeader>
             <DialogTitle>Add New Vehicle</DialogTitle>
             <DialogDescription>
-              Enter the details for the new vehicle. All fields are required.
+              Enter the details for the new vehicle. Fields marked with * are required.
             </DialogDescription>
           </DialogHeader>
           <Form {...addForm}>
@@ -365,7 +365,7 @@ export default function Vehicles() {
                 name="year"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Year</FormLabel>
+                    <FormLabel>Year (Optional)</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="2023" {...field} />
                     </FormControl>
@@ -378,7 +378,7 @@ export default function Vehicles() {
                 name="color"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Color</FormLabel>
+                    <FormLabel>Color (Optional)</FormLabel>
                     <FormControl>
                       <Input placeholder="Silver" {...field} />
                     </FormControl>
@@ -469,7 +469,7 @@ export default function Vehicles() {
                 name="year"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Year</FormLabel>
+                    <FormLabel>Year (Optional)</FormLabel>
                     <FormControl>
                       <Input type="number" placeholder="2023" {...field} />
                     </FormControl>
@@ -482,7 +482,7 @@ export default function Vehicles() {
                 name="color"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Color</FormLabel>
+                    <FormLabel>Color (Optional)</FormLabel>
                     <FormControl>
                       <Input placeholder="Silver" {...field} />
                     </FormControl>
