@@ -58,19 +58,39 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
       contractId: validatedData.contract_id
     });
 
+    // Check required environment variables
+    const spacesEndpoint = process.env.VITE_SPACES_ENDPOINT;
+    const spacesRegion = process.env.VITE_SPACES_REGION;
+    const spacesAccessKey = process.env.VITE_SPACES_ACCESS_KEY_ID;
+    const spacesSecretKey = process.env.VITE_SPACES_SECRET_ACCESS_KEY;
+    const bucketName = process.env.VITE_SPACES_BUCKET;
+
+    console.log('Environment variables check:', {
+      hasEndpoint: !!spacesEndpoint,
+      hasRegion: !!spacesRegion,
+      hasAccessKey: !!spacesAccessKey,
+      hasSecretKey: !!spacesSecretKey,
+      hasBucket: !!bucketName,
+      endpoint: spacesEndpoint,
+      region: spacesRegion,
+      bucket: bucketName
+    });
+
+    if (!spacesEndpoint || !spacesAccessKey || !spacesSecretKey || !bucketName) {
+      throw new Error('Missing required DigitalOcean Spaces environment variables');
+    }
+
     // Upload file to DigitalOcean Spaces via server
     const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
     
     const s3Client = new S3Client({
-      endpoint: process.env.VITE_SPACES_ENDPOINT,
-      region: process.env.VITE_SPACES_REGION || 'sfo3',
+      endpoint: spacesEndpoint,
+      region: spacesRegion || 'sfo3',
       credentials: {
-        accessKeyId: process.env.VITE_SPACES_ACCESS_KEY_ID!,
-        secretAccessKey: process.env.VITE_SPACES_SECRET_ACCESS_KEY!
+        accessKeyId: spacesAccessKey,
+        secretAccessKey: spacesSecretKey
       }
     });
-
-    const bucketName = process.env.VITE_SPACES_BUCKET || 'dealer-management-files';
     const fileName = `${Date.now()}_${req.file.originalname}`;
     const filePath = `contracts/${validatedData.contract_id}/files/${fileName}`;
 
@@ -91,8 +111,11 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
     await s3Client.send(uploadCommand);
     console.log('File uploaded to Spaces successfully:', filePath);
 
-    // Generate public URL
-    const fileUrl = `${process.env.VITE_SPACES_ENDPOINT?.replace('https://', 'https://')}/${bucketName}/${filePath}`;
+    // Generate public URL using CDN endpoint if available
+    const cdnEndpoint = process.env.VITE_SPACES_CDN_ENDPOINT;
+    const fileUrl = cdnEndpoint 
+      ? `${cdnEndpoint}/${filePath}`
+      : `${process.env.VITE_SPACES_ENDPOINT}/${bucketName}/${filePath}`;
     
     const fileInfo = {
       id: Math.random().toString(36).substr(2, 9),
