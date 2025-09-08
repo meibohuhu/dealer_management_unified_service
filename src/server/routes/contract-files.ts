@@ -117,24 +117,77 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
       ? `${cdnEndpoint}/${filePath}`
       : `${process.env.SPACES_ENDPOINT}/${bucketName}/${filePath}`;
     
-    const fileInfo = {
-      id: Math.random().toString(36).substr(2, 9),
-      contract_id: validatedData.contract_id,
-      file_name: req.file.originalname,
-      file_url: fileUrl,
-      file_size: req.file.size,
-      file_type: req.file.mimetype,
-      description: validatedData.description || '',
-      uploaded_by: validatedData.uploaded_by,
-      image_path: filePath,
-      uploaded_at: new Date().toISOString()
-    };
+    // Save file metadata to database
+    const { getDbPool } = await import('../config/database');
+    const dbPool = getDbPool();
+    
+    let fileRecord;
+    if (process.env.USE_SQLITE === 'true') {
+      // SQLite
+      const db = dbPool as any;
+      const result = await new Promise<any>((resolve, reject) => {
+        db.run(
+          `INSERT INTO ds_contract_image (contract_id, file_name, file_url, file_size, file_type, description, uploaded_by, image_path, uploaded_at) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+          [
+            parseInt(validatedData.contract_id),
+            req.file.originalname,
+            fileUrl,
+            req.file.size,
+            req.file.mimetype,
+            validatedData.description || '',
+            validatedData.uploaded_by,
+            filePath
+          ],
+          function(err: any) {
+            if (err) reject(err);
+            else resolve({ insertId: this.lastID });
+          }
+        );
+      });
+      
+      fileRecord = {
+        id: result.insertId,
+        contract_id: parseInt(validatedData.contract_id),
+        file_name: req.file.originalname,
+        file_url: fileUrl,
+        file_size: req.file.size,
+        file_type: req.file.mimetype,
+        description: validatedData.description || '',
+        uploaded_by: validatedData.uploaded_by,
+        image_path: filePath,
+        uploaded_at: new Date().toISOString()
+      };
+    } else {
+      // PostgreSQL
+      const client = await (dbPool as any).connect();
+      try {
+        const result = await client.query(
+          `INSERT INTO ds_contract_image (contract_id, file_name, file_url, file_size, file_type, description, uploaded_by, image_path, uploaded_at) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP) 
+           RETURNING *`,
+          [
+            parseInt(validatedData.contract_id),
+            req.file.originalname,
+            fileUrl,
+            req.file.size,
+            req.file.mimetype,
+            validatedData.description || '',
+            validatedData.uploaded_by,
+            filePath
+          ]
+        );
+        fileRecord = result.rows[0];
+      } finally {
+        client.release();
+      }
+    }
 
-    console.log('File upload completed:', fileInfo);
+    console.log('File upload completed and saved to database:', fileRecord);
 
     res.status(201).json({
       message: 'File uploaded successfully',
-      file: fileInfo
+      file: fileRecord
     });
   } catch (error) {
     console.error('Error uploading file:', error);
@@ -153,9 +206,40 @@ router.get('/contract/:contractId', async (req: Request, res: Response) => {
   try {
     const { contractId } = req.params;
     
-    // Return empty array - no example files
-    // In a full implementation, you would query the database for actual uploaded files
-    res.json([]);
+    // Fetch files from database
+    const { getDbPool } = await import('../config/database');
+    const dbPool = getDbPool();
+    
+    let files;
+    if (process.env.USE_SQLITE === 'true') {
+      // SQLite
+      const db = dbPool as any;
+      files = await new Promise<any[]>((resolve, reject) => {
+        db.all(
+          'SELECT * FROM ds_contract_image WHERE contract_id = ? ORDER BY uploaded_at DESC',
+          [parseInt(contractId)],
+          (err: any, rows: any[]) => {
+            if (err) reject(err);
+            else resolve(rows || []);
+          }
+        );
+      });
+    } else {
+      // PostgreSQL
+      const client = await (dbPool as any).connect();
+      try {
+        const result = await client.query(
+          'SELECT * FROM ds_contract_image WHERE contract_id = $1 ORDER BY uploaded_at DESC',
+          [parseInt(contractId)]
+        );
+        files = result.rows;
+      } finally {
+        client.release();
+      }
+    }
+    
+    console.log(`Found ${files.length} files for contract ${contractId}`);
+    res.json(files);
   } catch (error) {
     console.error('Error fetching contract files:', error);
     res.status(500).json({ error: 'Internal server error' });
