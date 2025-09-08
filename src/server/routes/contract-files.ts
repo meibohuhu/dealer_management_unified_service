@@ -59,11 +59,11 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
     });
 
     // Check required environment variables
-    const spacesEndpoint = process.env.VITE_SPACES_ENDPOINT;
-    const spacesRegion = process.env.VITE_SPACES_REGION;
-    const spacesAccessKey = process.env.VITE_SPACES_ACCESS_KEY_ID;
-    const spacesSecretKey = process.env.VITE_SPACES_SECRET_ACCESS_KEY;
-    const bucketName = process.env.VITE_SPACES_BUCKET || 'dealermanagementsystem';
+    const spacesEndpoint = process.env.SPACES_ENDPOINT;
+    const spacesRegion = process.env.SPACES_REGION;
+    const spacesAccessKey = process.env.SPACES_ACCESS_KEY_ID;
+    const spacesSecretKey = process.env.SPACES_SECRET_ACCESS_KEY;
+    const bucketName = process.env.SPACES_BUCKET || 'dealermanagementsystem';
 
     console.log('Environment variables check:', {
       hasEndpoint: !!spacesEndpoint,
@@ -112,10 +112,10 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
     console.log('File uploaded to Spaces successfully:', filePath);
 
     // Generate public URL using CDN endpoint if available
-    const cdnEndpoint = process.env.VITE_SPACES_CDN_ENDPOINT;
+    const cdnEndpoint = process.env.SPACES_CDN_ENDPOINT;
     const fileUrl = cdnEndpoint 
       ? `${cdnEndpoint}/${filePath}`
-      : `${process.env.VITE_SPACES_ENDPOINT}/${bucketName}/${filePath}`;
+      : `${process.env.SPACES_ENDPOINT}/${bucketName}/${filePath}`;
     
     const fileInfo = {
       id: Math.random().toString(36).substr(2, 9),

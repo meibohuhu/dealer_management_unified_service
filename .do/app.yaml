@@ -22,21 +22,21 @@ services:
         value: "0"
       - key: USE_SQLITE
         value: "false"
-      - key: VITE_API_BASE_URL
+      - key: API_BASE_URL
         value: "https://dealer-management-system-djlol.ondigitalocean.app/api"
       - key: DATABASE_URL
         value: "YOUR_DATABASE_URL_HERE"
-      - key: VITE_SPACES_ENDPOINT
+      - key: SPACES_ENDPOINT
         value: "https://sfo3.digitaloceanspaces.com"
-      - key: VITE_SPACES_BUCKET
+      - key: SPACES_BUCKET
         value: "dealermanagementsystem"
-      - key: VITE_SPACES_REGION
+      - key: SPACES_REGION
         value: "sfo3"
-      - key: VITE_SPACES_ACCESS_KEY_ID
+      - key: SPACES_ACCESS_KEY_ID
         value: "YOUR_SPACES_ACCESS_KEY_ID_HERE"
-      - key: VITE_SPACES_SECRET_ACCESS_KEY
+      - key: SPACES_SECRET_ACCESS_KEY
         value: "YOUR_SPACES_SECRET_ACCESS_KEY_HERE"
-      - key: VITE_SPACES_CDN_ENDPOINT
+      - key: SPACES_CDN_ENDPOINT
         value: "https://dealermanagementsystem.sfo3.cdn.digitaloceanspaces.com"
 
 # External PostgreSQL cluster configuration

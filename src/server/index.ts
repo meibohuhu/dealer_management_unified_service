@@ -40,8 +40,8 @@ app.use(helmet({
         "'self'", 
         "https://sfo3.digitaloceanspaces.com",
         "https://*.digitaloceanspaces.com",
-        "https://dealer-management-files.sfo3.digitaloceanspaces.com",
-        "https://dealer-management-files.sfo3.cdn.digitaloceanspaces.com"
+        "https://dealermanagementfiles.sfo3.digitaloceanspaces.com",
+        "https://dealermanagementfiles.sfo3.cdn.digitaloceanspaces.com"
       ],
       fontSrc: ["'self'", "data:"],
       objectSrc: ["'none'"],

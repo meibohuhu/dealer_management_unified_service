@@ -124,7 +124,7 @@ certbot --nginx -d yourdomain.com
 | `USE_SQLITE` | Database type | `false` |
 | `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/db` |
 | `VITE_SPACES_ENDPOINT` | DigitalOcean Spaces endpoint | `https://nyc3.digitaloceanspaces.com` |
-| `VITE_SPACES_BUCKET` | Spaces bucket name | `dealer-management-files` |
+| `VITE_SPACES_BUCKET` | Spaces bucket name | `dealermanagementfiles` |
 | `VITE_SPACES_REGION` | Spaces region | `nyc3` |
 | `VITE_SPACES_ACCESS_KEY_ID` | Spaces access key | `your_access_key` |
 | `VITE_SPACES_SECRET_ACCESS_KEY` | Spaces secret key | `your_secret_key` |
