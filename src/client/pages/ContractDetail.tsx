@@ -379,8 +379,10 @@ export default function ContractDetail() {
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Invalid Date";
     return new Intl.DateTimeFormat("en-US", {
       year: "numeric",
       month: "long",
@@ -388,8 +390,10 @@ export default function ContractDetail() {
     }).format(date);
   };
 
-  const formatDateTime = (dateString: string) => {
+  const formatDateTime = (dateString: string | null | undefined) => {
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Invalid Date";
     return new Intl.DateTimeFormat("en-US", {
       year: "numeric",
       month: "long",
