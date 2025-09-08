@@ -9,7 +9,7 @@
     "dev:client": "vite",
     "build": "npm run build:server && npm run build:client",
     "build:server": "npx tsc -p tsconfig.server.json --skipLibCheck",
-    "build:client": "vite build",
+    "build:client": "npx vite build",
     "start": "node dist/server/index.js",
     "preview": "vite preview",
     "lint": "eslint --quiet ./src",
