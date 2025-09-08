@@ -118,28 +118,27 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
       : `${process.env.SPACES_ENDPOINT}/${bucketName}/${filePath}`;
     
     // Save file metadata to database
-    const { getDbPool } = await import('../config/database');
-    const dbPool = getDbPool();
+    const { pgPool, getSqliteDb } = await import('../config/database');
     
     let fileRecord;
     if (process.env.USE_SQLITE === 'true') {
       // SQLite
-      const db = dbPool as any;
+      const db = getSqliteDb();
       const result = await new Promise<any>((resolve, reject) => {
         db.run(
           `INSERT INTO ds_contract_image (contract_id, file_name, file_url, file_size, file_type, description, uploaded_by, image_path, uploaded_at) 
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
           [
             parseInt(validatedData.contract_id),
-            req.file.originalname,
+            req.file!.originalname,
             fileUrl,
-            req.file.size,
-            req.file.mimetype,
+            req.file!.size,
+            req.file!.mimetype,
             validatedData.description || '',
             validatedData.uploaded_by,
             filePath
           ],
-          function(err: any) {
+          function(this: any, err: any) {
             if (err) reject(err);
             else resolve({ insertId: this.lastID });
           }
@@ -149,10 +148,10 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
       fileRecord = {
         id: result.insertId,
         contract_id: parseInt(validatedData.contract_id),
-        file_name: req.file.originalname,
+        file_name: req.file!.originalname,
         file_url: fileUrl,
-        file_size: req.file.size,
-        file_type: req.file.mimetype,
+        file_size: req.file!.size,
+        file_type: req.file!.mimetype,
         description: validatedData.description || '',
         uploaded_by: validatedData.uploaded_by,
         image_path: filePath,
@@ -160,7 +159,7 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
       };
     } else {
       // PostgreSQL
-      const client = await (dbPool as any).connect();
+      const client = await pgPool.connect();
       try {
         const result = await client.query(
           `INSERT INTO ds_contract_image (contract_id, file_name, file_url, file_size, file_type, description, uploaded_by, image_path, uploaded_at) 
@@ -168,10 +167,10 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
            RETURNING *`,
           [
             parseInt(validatedData.contract_id),
-            req.file.originalname,
+            req.file!.originalname,
             fileUrl,
-            req.file.size,
-            req.file.mimetype,
+            req.file!.size,
+            req.file!.mimetype,
             validatedData.description || '',
             validatedData.uploaded_by,
             filePath
@@ -207,13 +206,12 @@ router.get('/contract/:contractId', async (req: Request, res: Response) => {
     const { contractId } = req.params;
     
     // Fetch files from database
-    const { getDbPool } = await import('../config/database');
-    const dbPool = getDbPool();
+    const { pgPool, getSqliteDb } = await import('../config/database');
     
     let files;
     if (process.env.USE_SQLITE === 'true') {
       // SQLite
-      const db = dbPool as any;
+      const db = getSqliteDb();
       files = await new Promise<any[]>((resolve, reject) => {
         db.all(
           'SELECT * FROM ds_contract_image WHERE contract_id = ? ORDER BY uploaded_at DESC',
@@ -226,7 +224,7 @@ router.get('/contract/:contractId', async (req: Request, res: Response) => {
       });
     } else {
       // PostgreSQL
-      const client = await (dbPool as any).connect();
+      const client = await pgPool.connect();
       try {
         const result = await client.query(
           'SELECT * FROM ds_contract_image WHERE contract_id = $1 ORDER BY uploaded_at DESC',
