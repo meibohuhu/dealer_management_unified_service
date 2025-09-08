@@ -268,8 +268,8 @@ const startServer = async () => {
       console.log(`dist/client directory exists: ${clientExists}`);
       
       if (clientExists) {
-        // Serve static files FIRST
-        app.use(express.static(staticPath));
+        // Serve static files with fallthrough enabled
+        app.use(express.static(staticPath, { fallthrough: true }));
         console.log('Static file middleware registered successfully');
       } else {
         console.log('ERROR: dist/client directory does not exist! Build may have failed.');
@@ -283,7 +283,7 @@ const startServer = async () => {
     setupRoutes();
 
     // Catch-all handler: serve React app for non-API routes
-    app.get('*', (req, res) => {
+    app.use('*', (req, res, next) => {
       // If it's an API route, return 404 JSON
       if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'Route not found' });
@@ -293,7 +293,13 @@ const startServer = async () => {
       if (process.env.NODE_ENV === 'production') {
         const path = require('path');
         const indexPath = path.join(process.cwd(), 'dist/client', 'index.html');
-        res.sendFile(indexPath);
+        console.log(`Serving React app for route: ${req.path}`);
+        res.sendFile(indexPath, (err) => {
+          if (err) {
+            console.error('Error serving index.html:', err);
+            res.status(500).send('Error serving application');
+          }
+        });
       } else {
         // In development, redirect to Vite dev server
         res.redirect('http://localhost:3000' + req.path);
