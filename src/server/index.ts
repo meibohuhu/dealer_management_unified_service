@@ -46,7 +46,13 @@ app.use(helmet({
       fontSrc: ["'self'", "data:"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'self'"],
+      frameSrc: [
+        "'self'", 
+        "https://sfo3.digitaloceanspaces.com",
+        "https://*.digitaloceanspaces.com",
+        "https://dealermanagementfiles.sfo3.digitaloceanspaces.com",
+        "https://dealermanagementfiles.sfo3.cdn.digitaloceanspaces.com"
+      ],
     },
   },
 }));
@@ -276,12 +282,22 @@ const startServer = async () => {
     // Set up API routes AFTER static file serving
     setupRoutes();
 
-    // No catch-all route needed - express.static() will handle all non-API routes
-    // The static file serving will automatically serve index.html for any route that doesn't match an API route
-
-    // 404 handler - MUST come AFTER all other routes
-    app.use('*', (req, res) => {
-      res.status(404).json({ error: 'Route not found' });
+    // Catch-all handler: serve React app for non-API routes
+    app.get('*', (req, res) => {
+      // If it's an API route, return 404 JSON
+      if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'Route not found' });
+      }
+      
+      // For all other routes, serve the React app
+      if (process.env.NODE_ENV === 'production') {
+        const path = require('path');
+        const indexPath = path.join(process.cwd(), 'dist/client', 'index.html');
+        res.sendFile(indexPath);
+      } else {
+        // In development, redirect to Vite dev server
+        res.redirect('http://localhost:3000' + req.path);
+      }
     });
 
     // Seed sample data
