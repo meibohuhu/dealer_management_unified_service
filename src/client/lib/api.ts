@@ -165,45 +165,36 @@ export const contractFileApi = {
         throw new Error('Invalid file object: missing required properties (name, size, or type)');
       }
 
-      // Debug: Log file object details
-      console.log('API upload - File object:', {
-        constructor: fileData.file.constructor.name,
-        isFile: fileData.file instanceof File,
-        isBlob: fileData.file instanceof Blob,
-        hasStream: typeof fileData.file.stream === 'function',
-        hasArrayBuffer: typeof fileData.file.arrayBuffer === 'function',
-        name: fileData.file.name,
-        size: fileData.file.size,
-        type: fileData.file.type
+      console.log('API upload - Using server-side upload:', {
+        fileName: fileData.file.name,
+        fileSize: fileData.file.size,
+        fileType: fileData.file.type,
+        contractId: fileData.contract_id
       });
 
-      // Upload file to DigitalOcean Spaces
-      const uploadResult = await SpacesService.uploadFile(
-        fileData.contract_id,
-        fileData.file,
-        {
-          fileName: fileData.file.name,
-          fileSize: fileData.file.size,
-          fileType: fileData.file.type,
-          description: fileData.description,
-          uploadedBy: 'admin', // This should come from auth context
-        }
-      );
+      // Create FormData for server-side upload
+      const formData = new FormData();
+      formData.append('file', fileData.file);
+      formData.append('contract_id', fileData.contract_id);
+      formData.append('description', fileData.description || '');
+      formData.append('uploaded_by', 'admin'); // This should come from auth context
 
-      // Create the contract file record
-      const contractFile: ContractFile = {
-        id: Math.random().toString(36).substr(2, 9), // This should come from backend
-        contract_id: fileData.contract_id,
-        file_name: fileData.file.name,
-        file_url: uploadResult.fileUrl,
-        file_size: uploadResult.fileSize,
-        file_type: uploadResult.fileType,
-        description: fileData.description,
-        uploaded_by: 'admin', // This should come from auth context
-        created_at: new Date().toISOString(),
-      };
+      // Upload via server endpoint (bypasses CORS issues)
+      const response = await fetch(`${API_BASE_URL}/contract-files/upload`, {
+        method: 'POST',
+        body: formData,
+        // Don't set Content-Type header - let browser set it with boundary for FormData
+      });
 
-      return contractFile;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Upload failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('Server upload successful:', result);
+
+      return result.file;
     } catch (error) {
       console.error("Error uploading file:", error);
       throw new Error(`File upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);

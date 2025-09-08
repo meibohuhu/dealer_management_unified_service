@@ -52,37 +52,75 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
 
     const validatedData = FileUploadSchema.parse(req.body);
     
-    // For now, we'll return a success response
-    // In a full implementation, you would:
-    // 1. Upload the file to DigitalOcean Spaces
-    // 2. Save the file metadata to the database
-    // 3. Return the file information
+    console.log('Server-side file upload started:', {
+      fileName: req.file.originalname,
+      fileSize: req.file.size,
+      contractId: validatedData.contract_id
+    });
+
+    // Upload file to DigitalOcean Spaces via server
+    const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+    
+    const s3Client = new S3Client({
+      endpoint: process.env.VITE_SPACES_ENDPOINT,
+      region: process.env.VITE_SPACES_REGION || 'sfo3',
+      credentials: {
+        accessKeyId: process.env.VITE_SPACES_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.VITE_SPACES_SECRET_ACCESS_KEY!
+      }
+    });
+
+    const bucketName = process.env.VITE_SPACES_BUCKET || 'dealer-management-files';
+    const fileName = `${Date.now()}_${req.file.originalname}`;
+    const filePath = `contracts/${validatedData.contract_id}/files/${fileName}`;
+
+    const uploadCommand = new PutObjectCommand({
+      Bucket: bucketName,
+      Key: filePath,
+      Body: req.file.buffer,
+      ContentType: req.file.mimetype,
+      ACL: 'public-read',
+      Metadata: {
+        'original-name': req.file.originalname,
+        'uploaded-by': validatedData.uploaded_by,
+        'contract-id': validatedData.contract_id,
+        'description': validatedData.description || ''
+      }
+    });
+
+    await s3Client.send(uploadCommand);
+    console.log('File uploaded to Spaces successfully:', filePath);
+
+    // Generate public URL
+    const fileUrl = `${process.env.VITE_SPACES_ENDPOINT?.replace('https://', 'https://')}/${bucketName}/${filePath}`;
     
     const fileInfo = {
       id: Math.random().toString(36).substr(2, 9),
       contract_id: validatedData.contract_id,
       file_name: req.file.originalname,
-      file_url: `https://example.com/files/${req.file.originalname}`, // Placeholder
+      file_url: fileUrl,
       file_size: req.file.size,
       file_type: req.file.mimetype,
       description: validatedData.description || '',
       uploaded_by: validatedData.uploaded_by,
-      image_path: `contracts/${validatedData.contract_id}/files/${Date.now()}_${req.file.originalname}`,
+      image_path: filePath,
       uploaded_at: new Date().toISOString()
     };
+
+    console.log('File upload completed:', fileInfo);
 
     res.status(201).json({
       message: 'File uploaded successfully',
       file: fileInfo
     });
   } catch (error) {
+    console.error('Error uploading file:', error);
     if (error instanceof z.ZodError) {
       res.status(400).json({ error: 'Validation error', details: error.errors });
     } else if (error instanceof Error && error.message.includes('Invalid file type')) {
       res.status(400).json({ error: error.message });
     } else {
-      console.error('Error uploading file:', error);
-      res.status(500).json({ error: 'Internal server error' });
+      res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) });
     }
   }
 });
