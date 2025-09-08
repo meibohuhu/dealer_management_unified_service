@@ -1,12 +1,18 @@
 name: dealer-management-system
 region: sfo3
+databases:
+  - name: db-postgresql-sfo3-67804
+    engine: PG
+    version: "17"
+    production: true
+    cluster_name: db-postgresql-sfo3-67804
 services:
   - name: web
     source_dir: /
     github:
       repo: meibohuhu/dealer_management_unified_service
       branch: main
-    build_command: rm -rf node_modules package-lock.json && npm install && npm run build:server
+    build_command: rm -rf node_modules package-lock.json && npm install && npm run build
     run_command: npm start
     environment_slug: node-js
     instance_count: 1
@@ -25,7 +31,7 @@ services:
       - key: API_BASE_URL
         value: "https://dealer-management-system-djlol.ondigitalocean.app/api"
       - key: DATABASE_URL
-        value: "YOUR_DATABASE_URL_HERE"
+        value: "${db-postgresql-sfo3-67804.DATABASE_URL}"
       - key: SPACES_ENDPOINT
         value: "https://sfo3.digitaloceanspaces.com"
       - key: SPACES_BUCKET
@@ -33,9 +39,9 @@ services:
       - key: SPACES_REGION
         value: "sfo3"
       - key: SPACES_ACCESS_KEY_ID
-        value: "YOUR_SPACES_ACCESS_KEY_ID_HERE"
+        value: "DO00XHDZDXNLWNRJFQAF"
       - key: SPACES_SECRET_ACCESS_KEY
-        value: "YOUR_SPACES_SECRET_ACCESS_KEY_HERE"
+        value: "00KD1HtcOHBtW91dDig8Bir9EHH8t5rTFrmioqseQ1c"
       - key: SPACES_CDN_ENDPOINT
         value: "https://dealermanagementsystem.sfo3.cdn.digitaloceanspaces.com"
 
