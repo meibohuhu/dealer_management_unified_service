@@ -231,18 +231,21 @@ export const contractFileApi = {
   
   download: async (contractId: string, fileId: string, fileName: string): Promise<void> => {
     try {
-      // In a real implementation, you would:
-      // 1. Get the file record from your backend to get the file path
-      // 2. Generate a presigned download URL from DigitalOcean Spaces
-      // 3. Trigger the download
+      // Get the file list to find the file URL
+      const files = await contractFileApi.getByContract(contractId);
+      const file = files.find(f => f.id === fileId);
       
-      // For now, we'll simulate the download
-      console.log(`Downloading file ${fileName} from contract ${contractId}`);
+      if (!file) {
+        throw new Error('File not found');
+      }
+      
+      console.log(`Downloading file ${fileName} from URL: ${file.file_url}`);
       
       // Create a temporary link element to trigger download
       const link = document.createElement('a');
-      link.href = `data:text/plain;charset=utf-8,${encodeURIComponent('This is a simulated download. In production, this would be the actual file from DigitalOcean Spaces.')}`;
+      link.href = file.file_url;
       link.download = fileName;
+      link.target = '_blank'; // Open in new tab if download fails
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
