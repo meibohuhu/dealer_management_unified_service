@@ -29,7 +29,7 @@ services:
       - key: VITE_SPACES_ENDPOINT
         value: "https://sfo3.digitaloceanspaces.com"
       - key: VITE_SPACES_BUCKET
-        value: "dealer-management-files"
+        value: "dealermanagementsystem"
       - key: VITE_SPACES_REGION
         value: "sfo3"
       - key: VITE_SPACES_ACCESS_KEY_ID
@@ -37,7 +37,7 @@ services:
       - key: VITE_SPACES_SECRET_ACCESS_KEY
         value: "YOUR_SPACES_SECRET_ACCESS_KEY_HERE"
       - key: VITE_SPACES_CDN_ENDPOINT
-        value: "https://dealer-management-files.sfo3.cdn.digitaloceanspaces.com"
+        value: "https://dealermanagementsystem.sfo3.cdn.digitaloceanspaces.com"
 
 # External PostgreSQL cluster configuration
 # The app will connect to your managed PostgreSQL cluster

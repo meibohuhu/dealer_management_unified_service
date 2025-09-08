@@ -63,7 +63,7 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
     const spacesRegion = process.env.VITE_SPACES_REGION;
     const spacesAccessKey = process.env.VITE_SPACES_ACCESS_KEY_ID;
     const spacesSecretKey = process.env.VITE_SPACES_SECRET_ACCESS_KEY;
-    const bucketName = process.env.VITE_SPACES_BUCKET;
+    const bucketName = process.env.VITE_SPACES_BUCKET || 'dealermanagementsystem';
 
     console.log('Environment variables check:', {
       hasEndpoint: !!spacesEndpoint,
